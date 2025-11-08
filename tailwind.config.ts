@@ -104,17 +104,23 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontSize: {
-        "financial-xl": [
-          "36px",
-          { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" },
-        ],
-        "financial-lg": [
-          "24px",
-          { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "600" },
-        ],
+        // Brand typography scale
+        "display-2xl": ["72px", { lineHeight: "90px", letterSpacing: "-0.02em", fontWeight: "700" }],
+        "display-xl": ["60px", { lineHeight: "72px", letterSpacing: "-0.02em", fontWeight: "700" }],
+        "display-lg": ["48px", { lineHeight: "60px", letterSpacing: "-0.02em", fontWeight: "700" }],
+        "display-md": ["36px", { lineHeight: "44px", letterSpacing: "-0.01em", fontWeight: "700" }],
+        "display-sm": ["30px", { lineHeight: "38px", letterSpacing: "-0.01em", fontWeight: "600" }],
+
+        // Financial data typography
+        "financial-xl": ["36px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }],
+        "financial-lg": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "600" }],
+        "financial-md": ["20px", { lineHeight: "28px", letterSpacing: "0", fontWeight: "600" }],
+        "financial-sm": ["16px", { lineHeight: "24px", letterSpacing: "0", fontWeight: "600" }],
       },
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "var(--font-inter)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"],
       },
       fontFeatureSettings: {
         tnum: "'tnum'",
