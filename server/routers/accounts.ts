@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, createTRPCRouter } from "../trpc";
 import { db } from "@/lib/db";
 
 // Account type enum
@@ -54,7 +54,7 @@ const getBalanceInput = z.object({
   endDate: z.date().optional(),
 });
 
-export const accountsRouter = router({
+export const accountsRouter = createTRPCRouter({
   /**
    * List all accounts for the company
    */

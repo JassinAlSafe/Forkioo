@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, createTRPCRouter } from "../trpc";
 import { db } from "@/lib/db";
 
 // Input schemas
@@ -16,7 +16,7 @@ const comparePeriodsInput = z.object({
   previousEndDate: z.date(),
 });
 
-export const reportsRouter = router({
+export const reportsRouter = createTRPCRouter({
   /**
    * Profit & Loss Statement (Income Statement)
    */
