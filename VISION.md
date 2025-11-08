@@ -90,13 +90,15 @@ Small business owners are drowning in financial admin. Traditional accounting so
 
 **Backend:**
 - Next.js API routes + tRPC (type-safe APIs)
-- PostgreSQL (Supabase) - ACID compliance for financial data
-- Redis - caching, sessions, background jobs
+- PostgreSQL (Railway) - ACID compliance for financial data
+- Redis (Upstash) - serverless caching, sessions, background jobs
 - BullMQ - reliable job processing
 
 **Infrastructure:**
 - Vercel (frontend + edge functions)
-- Supabase (database + auth + real-time)
+- Railway (PostgreSQL database)
+- Clerk (authentication + user management)
+- Upstash Redis (serverless cache/queue)
 - Cloudflare R2 (document storage)
 - Sentry (error tracking)
 

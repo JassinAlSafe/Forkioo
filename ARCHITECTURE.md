@@ -32,8 +32,8 @@
 ┌─────────────────────────────────────────────────────────────┐
 │                       Data Layer                            │
 ├─────────────────────────────────────────────────────────────┤
-│  PostgreSQL      │  Redis         │  S3/R2         │  Plaid │
-│  (Supabase)      │  (Cache/Queue) │  (Files)       │  (Bank)│
+│  PostgreSQL      │  Redis         │  R2            │  Plaid │
+│  (Railway)       │  (Upstash)     │  (Files)       │  (Bank)│
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -76,9 +76,9 @@ CREATE TABLE users (
   full_name TEXT NOT NULL,
   avatar_url TEXT,
 
-  -- Auth (managed by Supabase Auth, but we store reference)
-  auth_provider TEXT NOT NULL DEFAULT 'email', -- 'email', 'google'
-  auth_provider_id TEXT,
+  -- Auth (managed by Clerk, but we store reference)
+  clerk_user_id TEXT UNIQUE NOT NULL, -- Clerk's user ID
+  auth_provider TEXT NOT NULL DEFAULT 'email', -- 'email', 'google', 'github'
 
   -- Metadata
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
