@@ -33,6 +33,15 @@ const deleteInvoiceInput = z.object({
   id: z.string().uuid(),
 });
 
+const recordPaymentInput = z.object({
+  invoiceId: z.string().uuid(),
+  amount: z.number().positive(),
+  paymentDate: z.date(),
+  paymentMethod: z.enum(["bank_transfer", "credit_card", "cash", "check", "other"]),
+  reference: z.string().optional(),
+  notes: z.string().optional(),
+});
+
 export const invoicesRouter = router({
   /**
    * Create a new invoice
@@ -423,4 +432,107 @@ export const invoicesRouter = router({
       overdue,
     };
   }),
+
+  /**
+   * Record a payment against an invoice
+   */
+  recordPayment: protectedProcedure
+    .input(recordPaymentInput)
+    .mutation(async ({ ctx, input }) => {
+      const { userId } = ctx;
+
+      // Get user's company
+      const companyUser = await db.companyUser.findFirst({
+        where: { userId },
+      });
+
+      if (!companyUser) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "You don't belong to any company.",
+        });
+      }
+
+      const companyId = companyUser.companyId;
+
+      // Fetch invoice
+      const invoice = await db.invoice.findFirst({
+        where: {
+          id: input.invoiceId,
+          companyId,
+        },
+      });
+
+      if (!invoice) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Invoice not found.",
+        });
+      }
+
+      // Validate payment amount
+      if (input.amount > Number(invoice.amountDue)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Payment amount cannot exceed amount due.",
+        });
+      }
+
+      // Calculate new amounts
+      const newAmountPaid = Number(invoice.amountPaid) + input.amount;
+      const newAmountDue = Number(invoice.total) - newAmountPaid;
+
+      // Determine new status
+      let newStatus = invoice.status;
+      if (newAmountDue === 0) {
+        newStatus = "paid";
+      } else if (newAmountPaid > 0 && newAmountDue > 0) {
+        newStatus = "partial";
+      }
+
+      // Create payment and update invoice in a transaction
+      const result = await db.$transaction(async (tx) => {
+        // Create payment record
+        const payment = await tx.payment.create({
+          data: {
+            companyId,
+            contactId: invoice.contactId,
+            amount: input.amount,
+            paymentDate: input.paymentDate,
+            paymentMethod: input.paymentMethod,
+            reference: input.reference || null,
+            notes: input.notes || null,
+            createdBy: userId,
+          },
+        });
+
+        // Create payment allocation
+        await tx.paymentAllocation.create({
+          data: {
+            paymentId: payment.id,
+            invoiceId: invoice.id,
+            amount: input.amount,
+          },
+        });
+
+        // Update invoice
+        const updatedInvoice = await tx.invoice.update({
+          where: { id: invoice.id },
+          data: {
+            amountPaid: newAmountPaid,
+            amountDue: newAmountDue,
+            status: newStatus,
+            paidAt: newStatus === "paid" ? new Date() : invoice.paidAt,
+          },
+          include: {
+            contact: true,
+            lines: true,
+          },
+        });
+
+        return { payment, invoice: updatedInvoice };
+      });
+
+      return result;
+    }),
 });

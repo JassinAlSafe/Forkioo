@@ -19,6 +19,7 @@ import {
   Send,
   Download,
   Trash2,
+  Wallet,
 } from "lucide-react";
 
 export interface InvoiceDetailData {
@@ -54,6 +55,7 @@ interface InvoiceDetailProps {
   onSend?: (invoice: InvoiceDetailData) => void;
   onDownload?: (invoice: InvoiceDetailData) => void;
   onDelete?: (invoice: InvoiceDetailData) => void;
+  onRecordPayment?: (invoice: InvoiceDetailData) => void;
 }
 
 export function InvoiceDetail({
@@ -63,6 +65,7 @@ export function InvoiceDetail({
   onSend,
   onDownload,
   onDelete,
+  onRecordPayment,
 }: InvoiceDetailProps) {
   if (!invoice) return null;
 
@@ -267,6 +270,15 @@ export function InvoiceDetail({
               >
                 <Send className="mr-2 h-4 w-4" />
                 Send Invoice
+              </Button>
+            )}
+            {!isDraft && !isPaid && invoice.amountDue > 0 && onRecordPayment && (
+              <Button
+                onClick={() => onRecordPayment(invoice)}
+                className="flex-1"
+              >
+                <Wallet className="mr-2 h-4 w-4" />
+                Record Payment
               </Button>
             )}
             {onDownload && (

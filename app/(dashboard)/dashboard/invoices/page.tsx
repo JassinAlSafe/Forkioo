@@ -8,6 +8,7 @@ import { InvoiceForm } from "@/components/invoices/invoice-form";
 import { InvoiceList, type Invoice } from "@/components/invoices/invoice-list";
 import { InvoiceFilters } from "@/components/invoices/invoice-filters";
 import { InvoiceDetail, type InvoiceDetailData } from "@/components/invoices/invoice-detail";
+import { RecordPayment } from "@/components/invoices/record-payment";
 import { type InvoiceFormData, generateInvoiceNumber } from "@/lib/validations/invoice";
 import { type InvoiceStatus } from "@/components/invoices/invoice-status-badge";
 import { trpc } from "@/lib/trpc/client";
@@ -15,6 +16,7 @@ import { trpc } from "@/lib/trpc/client";
 export default function InvoicesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | "all">("all");
 
@@ -69,6 +71,22 @@ export default function InvoicesPage() {
     },
     onError: (error) => {
       toast.error("Failed to update invoice", {
+        description: error.message,
+      });
+    },
+  });
+
+  const recordPayment = trpc.invoices.recordPayment.useMutation({
+    onSuccess: () => {
+      utils.invoices.list.invalidate();
+      utils.invoices.getStats.invalidate();
+      if (selectedInvoiceId) {
+        utils.invoices.getById.invalidate({ id: selectedInvoiceId });
+      }
+      setIsPaymentModalOpen(false);
+    },
+    onError: (error) => {
+      toast.error("Failed to record payment", {
         description: error.message,
       });
     },
@@ -243,6 +261,37 @@ export default function InvoicesPage() {
     );
   };
 
+  const handleRecordPayment = async (data: {
+    amount: number;
+    paymentDate: string;
+    paymentMethod: "bank_transfer" | "credit_card" | "cash" | "check" | "other";
+    reference?: string;
+    notes?: string;
+  }) => {
+    if (!selectedInvoiceId) return;
+
+    try {
+      await recordPayment.mutateAsync({
+        invoiceId: selectedInvoiceId,
+        amount: data.amount,
+        paymentDate: new Date(data.paymentDate),
+        paymentMethod: data.paymentMethod,
+        reference: data.reference,
+        notes: data.notes,
+      });
+
+      toast.success("Payment recorded successfully", {
+        description: `Payment of ${new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: detailData?.currency || "USD",
+        }).format(data.amount)} has been recorded.`,
+      });
+    } catch (error) {
+      // Error is handled by onError callback
+      console.error("Failed to record payment:", error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -376,7 +425,23 @@ export default function InvoicesPage() {
             currency: invoice.currency,
           });
         }}
+        onRecordPayment={() => setIsPaymentModalOpen(true)}
       />
+
+      {/* Payment Recording Modal */}
+      {detailData && (
+        <RecordPayment
+          open={isPaymentModalOpen}
+          onOpenChange={setIsPaymentModalOpen}
+          onSubmit={handleRecordPayment}
+          invoice={{
+            invoiceNumber: detailData.invoiceNumber,
+            amountDue: detailData.amountDue,
+            currency: detailData.currency,
+          }}
+          isSubmitting={recordPayment.isPending}
+        />
+      )}
     </div>
   );
 }

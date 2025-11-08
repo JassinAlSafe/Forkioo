@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2, Calendar } from "lucide-react";
+import { trpc } from "@/lib/trpc/client";
 
 import {
   invoiceFormSchema,
@@ -33,12 +34,21 @@ interface InvoiceFormProps {
 export function InvoiceForm({ open, onOpenChange, onSubmit }: InvoiceFormProps) {
   const [invoiceNumber] = useState(() => generateInvoiceNumber());
   const [action, setAction] = useState<"draft" | "send">("draft");
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
+
+  // Fetch customers
+  const { data: customersData } = trpc.customers.list.useQuery(
+    { limit: 100 },
+    { enabled: open }
+  );
+  const customers = customersData?.customers || [];
 
   const {
     register,
     control,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
     reset,
   } = useForm<InvoiceFormData>({
@@ -75,9 +85,27 @@ export function InvoiceForm({ open, onOpenChange, onSubmit }: InvoiceFormProps) 
   // Calculate totals
   const totals = calculateInvoiceTotals(lines);
 
+  const handleCustomerChange = (customerId: string) => {
+    setSelectedCustomerId(customerId);
+
+    if (customerId === "new") {
+      // Clear fields for new customer
+      setValue("customerName", "");
+      setValue("customerEmail", "");
+    } else if (customerId) {
+      // Fill in selected customer details
+      const customer = customers.find((c) => c.id === customerId);
+      if (customer) {
+        setValue("customerName", customer.name);
+        setValue("customerEmail", customer.email || "");
+      }
+    }
+  };
+
   const handleFormSubmit = (data: InvoiceFormData) => {
     onSubmit(data, action);
     reset();
+    setSelectedCustomerId("");
   };
 
   return (
@@ -94,6 +122,25 @@ export function InvoiceForm({ open, onOpenChange, onSubmit }: InvoiceFormProps) 
             <Input value={invoiceNumber} disabled className="font-mono" />
           </div>
 
+          {/* Customer Selection */}
+          <div>
+            <Label htmlFor="customerSelect">Select Customer</Label>
+            <select
+              id="customerSelect"
+              value={selectedCustomerId}
+              onChange={(e) => handleCustomerChange(e.target.value)}
+              className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            >
+              <option value="">-- Select a customer --</option>
+              <option value="new">+ New Customer</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.name} {customer.email ? `(${customer.email})` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Customer Information */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -104,6 +151,7 @@ export function InvoiceForm({ open, onOpenChange, onSubmit }: InvoiceFormProps) 
                 id="customerName"
                 {...register("customerName")}
                 placeholder="Acme Corp"
+                disabled={selectedCustomerId !== "" && selectedCustomerId !== "new"}
               />
               {errors.customerName && (
                 <p className="mt-1 text-xs text-danger-600">
@@ -119,6 +167,7 @@ export function InvoiceForm({ open, onOpenChange, onSubmit }: InvoiceFormProps) 
                 type="email"
                 {...register("customerEmail")}
                 placeholder="billing@acme.com"
+                disabled={selectedCustomerId !== "" && selectedCustomerId !== "new"}
               />
               {errors.customerEmail && (
                 <p className="mt-1 text-xs text-danger-600">
