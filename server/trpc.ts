@@ -47,6 +47,7 @@ export const publicProcedure = t.procedure;
 
 /**
  * Protected procedure - requires authentication
+ * Basic auth check without company context
  */
 export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   if (!ctx.userId) {
@@ -57,6 +58,42 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
     ctx: {
       // Infers the `userId` as non-nullable
       userId: ctx.userId,
+    },
+  });
+});
+
+/**
+ * Company procedure - requires authentication + company membership
+ * Automatically injects companyId, companyUser, and role into context
+ *
+ * Use this for all procedures that access company data (recommended)
+ */
+export const companyProcedure = t.procedure.use(async ({ ctx, next }) => {
+  if (!ctx.userId) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+
+  // Get company membership
+  const companyUser = await db.companyUser.findFirst({
+    where: { userId: ctx.userId },
+    include: { company: true },
+  });
+
+  if (!companyUser) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "No company access. Please contact your administrator.",
+    });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      userId: ctx.userId,
+      companyId: companyUser.companyId,
+      companyUser,
+      company: companyUser.company,
+      role: companyUser.role,
     },
   });
 });
