@@ -38,6 +38,7 @@ model Company {
   transactionLines TransactionLine[]
   contacts         Contact[]
   invoices         Invoice[]
+  expenses         Expense[]
   payments         Payment[]
   bankAccounts     BankAccount[]
   bankTransactions BankTransaction[]
@@ -140,6 +141,7 @@ model Account {
   transactionLines TransactionLine[]
   bankAccounts     BankAccount[]
   invoiceLines     InvoiceLine[]
+  expenses         Expense[]
   suggestedBankTransactions BankTransaction[]
 
   @@unique([companyId, code])
@@ -187,6 +189,7 @@ model Contact {
   // Relations
   company              Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
   invoices             Invoice[]
+  expenses             Expense[]
   payments             Payment[]
   transactionLines     TransactionLine[]
 
@@ -331,6 +334,7 @@ model Transaction {
   voider       User?             @relation("VoidedBy", fields: [voidedBy], references: [id])
   lines        TransactionLine[]
   invoices     Invoice[]
+  expenses     Expense[]
 
   @@index([companyId])
   @@index([companyId, transactionDate])
@@ -373,6 +377,77 @@ model TransactionLine {
   @@index([companyId, accountId])
   @@index([contactId])
   @@map("transaction_lines")
+}
+
+// ============================================
+// EXPENSES
+// ============================================
+
+model Expense {
+  id        String @id @default(uuid())
+  companyId String @map("company_id")
+
+  // Expense details
+  expenseDate DateTime @map("expense_date") @db.Date
+  amount      Decimal  @db.Decimal(19, 4)
+  currency    String   @default("USD")
+
+  // Description
+  description String
+  merchant    String?
+  category    String? // travel, meals, office_supplies, software, etc.
+
+  // Payment
+  paymentMethod String? @map("payment_method") // cash, credit_card, bank_transfer, other
+
+  // Contacts (supplier/vendor)
+  contactId String? @map("contact_id")
+
+  // Accounting
+  expenseAccountId String? @map("expense_account_id")
+  transactionId    String? @map("transaction_id")
+
+  // Tax
+  taxAmount      Decimal @default(0) @map("tax_amount") @db.Decimal(19, 4)
+  isTaxDeductible Boolean @default(true) @map("is_tax_deductible")
+
+  // Receipt/attachments
+  receiptUrl  String? @map("receipt_url")
+  attachments Json    @default("[]") // [{name, url, size, type}]
+
+  // Status
+  status String @default("draft") // draft, submitted, approved, rejected, paid
+
+  // Approval workflow
+  submittedAt DateTime? @map("submitted_at")
+  submittedBy String?   @map("submitted_by")
+  approvedAt  DateTime? @map("approved_at")
+  approvedBy  String?   @map("approved_by")
+  rejectedAt  DateTime? @map("rejected_at")
+  rejectedBy  String?   @map("rejected_by")
+  rejectReason String?  @map("reject_reason")
+
+  // Metadata
+  notes String?
+  tags  Json   @default("[]")
+
+  // Audit
+  createdBy String   @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  company        Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact        Contact?  @relation(fields: [contactId], references: [id])
+  expenseAccount Account?  @relation(fields: [expenseAccountId], references: [id])
+  transaction    Transaction? @relation(fields: [transactionId], references: [id])
+
+  @@index([companyId])
+  @@index([contactId])
+  @@index([companyId, expenseDate])
+  @@index([companyId, status])
+  @@index([category])
+  @@map("expenses")
 }
 
 // ============================================

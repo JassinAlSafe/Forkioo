@@ -6,11 +6,15 @@ import { createTRPCRouter } from "../trpc";
 import { healthRouter } from "./health";
 import { invoicesRouter } from "./invoices";
 import { customersRouter } from "./customers";
+import { companyRouter } from "./company";
+import { expensesRouter } from "./expenses";
 
 export const appRouter = createTRPCRouter({
   health: healthRouter,
   invoices: invoicesRouter,
   customers: customersRouter,
+  company: companyRouter,
+  expenses: expensesRouter,
   // Add more routers here as we build features:
   // transactions: transactionsRouter,
   // dashboard: dashboardRouter,
