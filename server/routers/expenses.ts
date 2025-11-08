@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, createTRPCRouter } from "../trpc";
 import { db } from "@/lib/db";
 
 // Input schemas for expense operations
@@ -58,7 +58,7 @@ const rejectExpenseInput = z.object({
   reason: z.string().min(1, "Rejection reason is required"),
 });
 
-export const expensesRouter = router({
+export const expensesRouter = createTRPCRouter({
   /**
    * List all expenses for the user's company
    */

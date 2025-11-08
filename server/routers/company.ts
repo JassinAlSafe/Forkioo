@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, createTRPCRouter } from "../trpc";
 import { db } from "@/lib/db";
 
 // Input schemas for company operations
@@ -51,7 +51,7 @@ const updateCompanySettingsInput = z.object({
   }).optional(),
 });
 
-export const companyRouter = router({
+export const companyRouter = createTRPCRouter({
   /**
    * Get company profile
    */

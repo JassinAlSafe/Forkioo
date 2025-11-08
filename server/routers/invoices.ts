@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, createTRPCRouter } from "../trpc";
 import { db } from "@/lib/db";
 import { invoiceSchema, invoiceLineSchema } from "@/lib/validations/invoice";
 
@@ -42,7 +42,7 @@ const recordPaymentInput = z.object({
   notes: z.string().optional(),
 });
 
-export const invoicesRouter = router({
+export const invoicesRouter = createTRPCRouter({
   /**
    * Create a new invoice
    * Creates customer if doesn't exist, calculates totals, and saves to database
