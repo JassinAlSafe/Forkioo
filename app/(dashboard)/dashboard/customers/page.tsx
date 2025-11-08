@@ -2,115 +2,58 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { CustomerForm, type CustomerFormData } from "@/components/customers/customer-form";
-import { trpc } from "@/lib/trpc/client";
+import { useCustomers } from "@/hooks/use-customers";
 
 export default function CustomersPage() {
   const [search, setSearch] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
 
-  const utils = trpc.useUtils();
+  const customerHooks = useCustomers();
 
   // Fetch customers from database
-  const { data: customersData, isLoading: customersLoading } = trpc.customers.list.useQuery({
+  const { data: customersData, isLoading: customersLoading } = customerHooks.list({
     search: search || undefined,
   });
 
   // Fetch stats
-  const { data: stats } = trpc.customers.getStats.useQuery();
-
-  // Mutations
-  const createCustomer = trpc.customers.create.useMutation({
-    onSuccess: () => {
-      utils.customers.list.invalidate();
-      utils.customers.getStats.invalidate();
-      setIsFormOpen(false);
-      toast.success("Customer created successfully");
-    },
-    onError: (error) => {
-      toast.error("Failed to create customer", {
-        description: error.message,
-      });
-    },
-  });
-
-  const updateCustomer = trpc.customers.update.useMutation({
-    onSuccess: () => {
-      utils.customers.list.invalidate();
-      utils.customers.getStats.invalidate();
-      setIsFormOpen(false);
-      setEditingCustomer(null);
-      toast.success("Customer updated successfully");
-    },
-    onError: (error) => {
-      toast.error("Failed to update customer", {
-        description: error.message,
-      });
-    },
-  });
-
-  const deleteCustomer = trpc.customers.delete.useMutation({
-    onSuccess: () => {
-      utils.customers.list.invalidate();
-      utils.customers.getStats.invalidate();
-      toast.success("Customer deleted successfully");
-    },
-    onError: (error) => {
-      toast.error("Failed to delete customer", {
-        description: error.message,
-      });
-    },
-  });
+  const { data: stats } = customerHooks.getStats();
 
   const customers = customersData?.customers || [];
 
   const handleCreateCustomer = async (data: CustomerFormData) => {
-    try {
-      await createCustomer.mutateAsync({
-        name: data.name,
-        email: data.email || undefined,
-        phone: data.phone || undefined,
-        address: data.address || undefined,
-        taxId: data.taxId || undefined,
-        notes: data.notes || undefined,
-      });
-    } catch (error) {
-      // Error handled by onError callback
-      console.error("Failed to create customer:", error);
-    }
+    await customerHooks.create.mutateAsync({
+      name: data.name,
+      email: data.email || undefined,
+      phone: data.phone || undefined,
+      address: data.address || undefined,
+      taxId: data.taxId || undefined,
+      notes: data.notes || undefined,
+    });
+    setIsFormOpen(false);
   };
 
   const handleUpdateCustomer = async (data: CustomerFormData) => {
     if (!editingCustomer) return;
 
-    try {
-      await updateCustomer.mutateAsync({
-        id: editingCustomer.id,
-        name: data.name,
-        email: data.email || undefined,
-        phone: data.phone || undefined,
-        address: data.address || undefined,
-        taxId: data.taxId || undefined,
-        notes: data.notes || undefined,
-      });
-    } catch (error) {
-      // Error handled by onError callback
-      console.error("Failed to update customer:", error);
-    }
+    await customerHooks.update.mutateAsync({
+      id: editingCustomer.id,
+      name: data.name,
+      email: data.email || undefined,
+      phone: data.phone || undefined,
+      address: data.address || undefined,
+      taxId: data.taxId || undefined,
+      notes: data.notes || undefined,
+    });
+    setIsFormOpen(false);
+    setEditingCustomer(null);
   };
 
   const handleDeleteCustomer = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete ${name}?`)) return;
-
-    try {
-      await deleteCustomer.mutateAsync({ id });
-    } catch (error) {
-      // Error handled by onError callback
-      console.error("Failed to delete customer:", error);
-    }
+    await customerHooks.delete.mutateAsync({ id });
   };
 
   return (
@@ -264,7 +207,7 @@ export default function CustomersPage() {
         }}
         onSubmit={editingCustomer ? handleUpdateCustomer : handleCreateCustomer}
         customer={editingCustomer}
-        isSubmitting={createCustomer.isPending || updateCustomer.isPending}
+        isSubmitting={customerHooks.create.isPending || customerHooks.update.isPending}
       />
     </div>
   );

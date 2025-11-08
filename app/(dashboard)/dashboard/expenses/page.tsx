@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Filter } from "lucide-react";
-import { toast } from "sonner";
+import { Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExpenseForm, type ExpenseFormData } from "@/components/expenses/expense-form";
 import { ExpenseStatusBadge, type ExpenseStatus } from "@/components/expenses/expense-status-badge";
-import { trpc } from "@/lib/trpc/client";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { useExpenses } from "@/hooks/use-expenses";
+import { useFormatters } from "@/hooks/use-formatters";
 
 export default function ExpensesPage() {
   const [search, setSearch] = useState("");
@@ -16,165 +15,75 @@ export default function ExpensesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<any>(null);
 
-  const utils = trpc.useUtils();
+  const expenseHooks = useExpenses();
+  const { formatCurrency, formatDate, snakeToTitle } = useFormatters();
 
   // Fetch expenses from database
-  const { data: expensesData, isLoading: expensesLoading } = trpc.expenses.list.useQuery({
+  const { data: expensesData, isLoading: expensesLoading } = expenseHooks.list({
     search: search || undefined,
     status: statusFilter,
     category: categoryFilter || undefined,
   });
 
   // Fetch stats
-  const { data: stats } = trpc.expenses.getStats.useQuery();
+  const { data: stats } = expenseHooks.getStats();
 
   // Fetch categories
-  const { data: categories } = trpc.expenses.getCategories.useQuery();
-
-  // Mutations
-  const createExpense = trpc.expenses.create.useMutation({
-    onSuccess: () => {
-      utils.expenses.list.invalidate();
-      utils.expenses.getStats.invalidate();
-      utils.expenses.getCategories.invalidate();
-      setIsFormOpen(false);
-      toast.success("Expense created successfully");
-    },
-    onError: (error) => {
-      toast.error("Failed to create expense", {
-        description: error.message,
-      });
-    },
-  });
-
-  const updateExpense = trpc.expenses.update.useMutation({
-    onSuccess: () => {
-      utils.expenses.list.invalidate();
-      utils.expenses.getStats.invalidate();
-      utils.expenses.getCategories.invalidate();
-      setIsFormOpen(false);
-      setEditingExpense(null);
-      toast.success("Expense updated successfully");
-    },
-    onError: (error) => {
-      toast.error("Failed to update expense", {
-        description: error.message,
-      });
-    },
-  });
-
-  const deleteExpense = trpc.expenses.delete.useMutation({
-    onSuccess: () => {
-      utils.expenses.list.invalidate();
-      utils.expenses.getStats.invalidate();
-      utils.expenses.getCategories.invalidate();
-      toast.success("Expense deleted successfully");
-    },
-    onError: (error) => {
-      toast.error("Failed to delete expense", {
-        description: error.message,
-      });
-    },
-  });
-
-  const approveExpense = trpc.expenses.approve.useMutation({
-    onSuccess: () => {
-      utils.expenses.list.invalidate();
-      utils.expenses.getStats.invalidate();
-      toast.success("Expense approved");
-    },
-    onError: (error) => {
-      toast.error("Failed to approve expense", {
-        description: error.message,
-      });
-    },
-  });
-
-  const rejectExpense = trpc.expenses.reject.useMutation({
-    onSuccess: () => {
-      utils.expenses.list.invalidate();
-      utils.expenses.getStats.invalidate();
-      toast.success("Expense rejected");
-    },
-    onError: (error) => {
-      toast.error("Failed to reject expense", {
-        description: error.message,
-      });
-    },
-  });
+  const { data: categories } = expenseHooks.getCategories();
 
   const expenses = expensesData?.expenses || [];
 
   const handleCreateExpense = async (data: ExpenseFormData) => {
-    try {
-      await createExpense.mutateAsync({
-        expenseDate: new Date(data.expenseDate),
-        amount: data.amount,
-        description: data.description,
-        merchant: data.merchant || undefined,
-        category: data.category || undefined,
-        paymentMethod: data.paymentMethod,
-        contactId: data.contactId || undefined,
-        taxAmount: data.taxAmount || 0,
-        isTaxDeductible: data.isTaxDeductible,
-        receiptUrl: data.receiptUrl || undefined,
-        notes: data.notes || undefined,
-      });
-    } catch (error) {
-      console.error("Failed to create expense:", error);
-    }
+    await expenseHooks.create.mutateAsync({
+      expenseDate: new Date(data.expenseDate),
+      amount: data.amount,
+      description: data.description,
+      merchant: data.merchant || undefined,
+      category: data.category || undefined,
+      paymentMethod: data.paymentMethod,
+      contactId: data.contactId || undefined,
+      taxAmount: data.taxAmount || 0,
+      isTaxDeductible: data.isTaxDeductible,
+      receiptUrl: data.receiptUrl || undefined,
+      notes: data.notes || undefined,
+    });
+    setIsFormOpen(false);
   };
 
   const handleUpdateExpense = async (data: ExpenseFormData) => {
     if (!editingExpense) return;
 
-    try {
-      await updateExpense.mutateAsync({
-        id: editingExpense.id,
-        expenseDate: new Date(data.expenseDate),
-        amount: data.amount,
-        description: data.description,
-        merchant: data.merchant || undefined,
-        category: data.category || undefined,
-        paymentMethod: data.paymentMethod,
-        contactId: data.contactId || undefined,
-        taxAmount: data.taxAmount || 0,
-        isTaxDeductible: data.isTaxDeductible,
-        receiptUrl: data.receiptUrl || undefined,
-        notes: data.notes || undefined,
-      });
-    } catch (error) {
-      console.error("Failed to update expense:", error);
-    }
+    await expenseHooks.update.mutateAsync({
+      id: editingExpense.id,
+      expenseDate: new Date(data.expenseDate),
+      amount: data.amount,
+      description: data.description,
+      merchant: data.merchant || undefined,
+      category: data.category || undefined,
+      paymentMethod: data.paymentMethod,
+      contactId: data.contactId || undefined,
+      taxAmount: data.taxAmount || 0,
+      isTaxDeductible: data.isTaxDeductible,
+      receiptUrl: data.receiptUrl || undefined,
+      notes: data.notes || undefined,
+    });
+    setIsFormOpen(false);
+    setEditingExpense(null);
   };
 
   const handleDeleteExpense = async (id: string, description: string) => {
     if (!confirm(`Are you sure you want to delete "${description}"?`)) return;
-
-    try {
-      await deleteExpense.mutateAsync({ id });
-    } catch (error) {
-      console.error("Failed to delete expense:", error);
-    }
+    await expenseHooks.delete.mutateAsync({ id });
   };
 
   const handleApproveExpense = async (id: string) => {
-    try {
-      await approveExpense.mutateAsync({ id });
-    } catch (error) {
-      console.error("Failed to approve expense:", error);
-    }
+    await expenseHooks.approve.mutateAsync({ id });
   };
 
   const handleRejectExpense = async (id: string) => {
     const reason = prompt("Reason for rejection:");
     if (!reason) return;
-
-    try {
-      await rejectExpense.mutateAsync({ id, reason });
-    } catch (error) {
-      console.error("Failed to reject expense:", error);
-    }
+    await expenseHooks.reject.mutateAsync({ id, reason });
   };
 
   return (
@@ -263,11 +172,7 @@ export default function ExpensesPage() {
           <option value="">All Categories</option>
           {categories?.map((cat) => (
             <option key={cat.category} value={cat.category || ""}>
-              {cat.category
-                ?.split("_")
-                .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                .join(" ")}{" "}
-              ({cat.count})
+              {cat.category ? snakeToTitle(cat.category) : "Uncategorized"} ({cat.count})
             </option>
           ))}
         </select>
@@ -319,7 +224,7 @@ export default function ExpensesPage() {
                     className="transition-colors hover:bg-gray-50"
                   >
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                      {formatDate(new Date(expense.expenseDate))}
+                      {formatDate(expense.expenseDate)}
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">
@@ -330,12 +235,7 @@ export default function ExpensesPage() {
                       )}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
-                      {expense.category
-                        ? expense.category
-                            .split("_")
-                            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                            .join(" ")
-                        : "—"}
+                      {expense.category ? snakeToTitle(expense.category) : "—"}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
                       {formatCurrency(Number(expense.amount))}
@@ -415,7 +315,7 @@ export default function ExpensesPage() {
         }}
         onSubmit={editingExpense ? handleUpdateExpense : handleCreateExpense}
         expense={editingExpense}
-        isSubmitting={createExpense.isPending || updateExpense.isPending}
+        isSubmitting={expenseHooks.create.isPending || expenseHooks.update.isPending}
       />
     </div>
   );

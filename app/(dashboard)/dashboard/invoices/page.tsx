@@ -11,7 +11,8 @@ import { InvoiceDetail, type InvoiceDetailData } from "@/components/invoices/inv
 import { RecordPayment } from "@/components/invoices/record-payment";
 import { type InvoiceFormData, generateInvoiceNumber } from "@/lib/validations/invoice";
 import { type InvoiceStatus } from "@/components/invoices/invoice-status-badge";
-import { trpc } from "@/lib/trpc/client";
+import { useInvoices } from "@/hooks/use-invoices";
+import { useFormatters } from "@/hooks/use-formatters";
 
 export default function InvoicesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -20,77 +21,20 @@ export default function InvoicesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | "all">("all");
 
-  const utils = trpc.useUtils();
+  const invoiceHooks = useInvoices();
+  const { formatCurrency } = useFormatters();
 
   // Fetch invoices from database
-  const { data: invoicesData, isLoading: invoicesLoading } = trpc.invoices.list.useQuery({
+  const { data: invoicesData, isLoading: invoicesLoading } = invoiceHooks.list({
     search: search || undefined,
     status: statusFilter !== "all" ? statusFilter : undefined,
   });
 
   // Fetch stats
-  const { data: stats } = trpc.invoices.getStats.useQuery();
+  const { data: stats } = invoiceHooks.getStats();
 
   // Fetch selected invoice details
-  const { data: invoiceDetails } = trpc.invoices.getById.useQuery(
-    { id: selectedInvoiceId! },
-    { enabled: !!selectedInvoiceId }
-  );
-
-  // Mutations
-  const createInvoice = trpc.invoices.create.useMutation({
-    onSuccess: () => {
-      // Invalidate and refetch invoices list and stats
-      utils.invoices.list.invalidate();
-      utils.invoices.getStats.invalidate();
-      setIsFormOpen(false);
-    },
-    onError: (error) => {
-      toast.error("Failed to create invoice", {
-        description: error.message,
-      });
-    },
-  });
-
-  const deleteInvoice = trpc.invoices.delete.useMutation({
-    onSuccess: () => {
-      utils.invoices.list.invalidate();
-      utils.invoices.getStats.invalidate();
-    },
-    onError: (error) => {
-      toast.error("Failed to delete invoice", {
-        description: error.message,
-      });
-    },
-  });
-
-  const updateInvoiceStatus = trpc.invoices.updateStatus.useMutation({
-    onSuccess: () => {
-      utils.invoices.list.invalidate();
-      utils.invoices.getStats.invalidate();
-    },
-    onError: (error) => {
-      toast.error("Failed to update invoice", {
-        description: error.message,
-      });
-    },
-  });
-
-  const recordPayment = trpc.invoices.recordPayment.useMutation({
-    onSuccess: () => {
-      utils.invoices.list.invalidate();
-      utils.invoices.getStats.invalidate();
-      if (selectedInvoiceId) {
-        utils.invoices.getById.invalidate({ id: selectedInvoiceId });
-      }
-      setIsPaymentModalOpen(false);
-    },
-    onError: (error) => {
-      toast.error("Failed to record payment", {
-        description: error.message,
-      });
-    },
-  });
+  const { data: invoiceDetails } = invoiceHooks.getById(selectedInvoiceId!);
 
   // Transform database invoices to match component interface
   const invoices: Invoice[] =
@@ -112,32 +56,22 @@ export default function InvoicesPage() {
     data: InvoiceFormData,
     action: "draft" | "send"
   ) => {
-    try {
-      await createInvoice.mutateAsync({
-        invoiceNumber: generateInvoiceNumber(),
-        customerName: data.customerName,
-        customerEmail: data.customerEmail || undefined,
-        invoiceDate: new Date(data.invoiceDate),
-        dueDate: new Date(data.dueDate),
-        lines: data.lines,
-        notes: data.notes || undefined,
-        terms: data.terms || undefined,
-        status: action === "draft" ? "draft" : "sent",
-      });
+    await invoiceHooks.create.mutateAsync({
+      invoiceNumber: generateInvoiceNumber(),
+      customerName: data.customerName,
+      customerEmail: data.customerEmail || undefined,
+      invoiceDate: new Date(data.invoiceDate),
+      dueDate: new Date(data.dueDate),
+      lines: data.lines,
+      notes: data.notes || undefined,
+      terms: data.terms || undefined,
+      status: action === "draft" ? "draft" : "sent",
+    });
 
-      toast.success(
-        action === "draft" ? "Invoice saved" : "Invoice sent",
-        {
-          description:
-            action === "draft"
-              ? "Your invoice has been saved as a draft."
-              : "Your invoice has been sent successfully.",
-        }
-      );
-    } catch (error) {
-      // Error is handled by onError callback
-      console.error("Failed to create invoice:", error);
-    }
+    setIsFormOpen(false);
+    toast.success(
+      action === "draft" ? "Invoice saved as draft" : "Invoice sent successfully"
+    );
   };
 
   // Transform invoice details for the detail view
@@ -174,91 +108,15 @@ export default function InvoicesPage() {
   };
 
   const handleSendInvoice = async (invoice: Invoice) => {
-    try {
-      // Show loading toast
-      const sendToast = toast.loading(`Sending ${invoice.invoiceNumber} via email...`);
-
-      // Call API to send invoice email
-      const response = await fetch(`/api/invoices/${invoice.id}/send`, {
-        method: "POST",
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to send invoice");
-      }
-
-      // Invalidate queries to refresh the invoice status
-      utils.invoices.list.invalidate();
-      utils.invoices.getStats.invalidate();
-      if (selectedInvoiceId === invoice.id) {
-        utils.invoices.getById.invalidate({ id: invoice.id });
-      }
-
-      // Update toast to success
-      toast.success("Invoice sent via email", {
-        id: sendToast,
-        description: data.message || `${invoice.invoiceNumber} has been sent successfully.`,
-      });
-    } catch (error: any) {
-      console.error("Failed to send invoice:", error);
-      toast.error("Failed to send invoice", {
-        description: error.message || "An error occurred while sending the invoice.",
-      });
-    }
+    await invoiceHooks.send.mutateAsync({ id: invoice.id });
   };
 
   const handleDownloadInvoice = async (invoice: Invoice) => {
-    try {
-      // Show loading toast
-      const downloadToast = toast.loading(`Generating PDF for ${invoice.invoiceNumber}...`);
-
-      // Fetch PDF from API
-      const response = await fetch(`/api/invoices/${invoice.id}/pdf`);
-
-      if (!response.ok) {
-        throw new Error("Failed to generate PDF");
-      }
-
-      // Get the PDF blob
-      const blob = await response.blob();
-
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${invoice.invoiceNumber}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-
-      // Cleanup
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      // Update toast to success
-      toast.success("PDF downloaded", {
-        id: downloadToast,
-        description: `${invoice.invoiceNumber}.pdf has been downloaded.`,
-      });
-    } catch (error) {
-      console.error("Failed to download PDF:", error);
-      toast.error("Failed to download PDF", {
-        description: "An error occurred while generating the PDF. Please try again.",
-      });
-    }
+    await invoiceHooks.generatePDF.mutateAsync({ id: invoice.id });
   };
 
   const handleDeleteInvoice = async (invoice: Invoice) => {
-    // Use toast.promise for async operations with loading state
-    toast.promise(
-      deleteInvoice.mutateAsync({ id: invoice.id }),
-      {
-        loading: `Deleting ${invoice.invoiceNumber}...`,
-        success: `${invoice.invoiceNumber} deleted successfully`,
-        error: "Failed to delete invoice",
-      }
-    );
+    await invoiceHooks.delete.mutateAsync({ id: invoice.id });
   };
 
   const handleRecordPayment = async (data: {
@@ -270,26 +128,19 @@ export default function InvoicesPage() {
   }) => {
     if (!selectedInvoiceId) return;
 
-    try {
-      await recordPayment.mutateAsync({
-        invoiceId: selectedInvoiceId,
-        amount: data.amount,
-        paymentDate: new Date(data.paymentDate),
-        paymentMethod: data.paymentMethod,
-        reference: data.reference,
-        notes: data.notes,
-      });
+    await invoiceHooks.recordPayment.mutateAsync({
+      invoiceId: selectedInvoiceId,
+      amount: data.amount,
+      paymentDate: new Date(data.paymentDate),
+      paymentMethod: data.paymentMethod,
+      reference: data.reference,
+      notes: data.notes,
+    });
 
-      toast.success("Payment recorded successfully", {
-        description: `Payment of ${new Intl.NumberFormat("en-US", {
-          style: "currency",
-          currency: detailData?.currency || "USD",
-        }).format(data.amount)} has been recorded.`,
-      });
-    } catch (error) {
-      // Error is handled by onError callback
-      console.error("Failed to record payment:", error);
-    }
+    setIsPaymentModalOpen(false);
+    toast.success(
+      `Payment of ${formatCurrency(data.amount, { currency: detailData?.currency })} recorded`
+    );
   };
 
   return (
@@ -439,7 +290,7 @@ export default function InvoicesPage() {
             amountDue: detailData.amountDue,
             currency: detailData.currency,
           }}
-          isSubmitting={recordPayment.isPending}
+          isSubmitting={invoiceHooks.recordPayment.isPending}
         />
       )}
     </div>
