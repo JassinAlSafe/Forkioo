@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Providers } from "./providers";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const inter = Inter({
@@ -33,6 +34,7 @@ export default function RootLayout({
       <html lang="en" className={inter.variable}>
         <body className="min-h-screen bg-background font-sans antialiased">
           <Providers>{children}</Providers>
+          <Toaster />
         </body>
       </html>
     </ClerkProvider>

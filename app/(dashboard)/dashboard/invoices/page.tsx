@@ -2,16 +2,19 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { InvoiceForm } from "@/components/invoices/invoice-form";
 import { InvoiceList, type Invoice } from "@/components/invoices/invoice-list";
 import { InvoiceFilters } from "@/components/invoices/invoice-filters";
+import { InvoiceDetail, type InvoiceDetailData } from "@/components/invoices/invoice-detail";
 import { type InvoiceFormData, generateInvoiceNumber } from "@/lib/validations/invoice";
 import { type InvoiceStatus } from "@/components/invoices/invoice-status-badge";
 import { trpc } from "@/lib/trpc/client";
 
 export default function InvoicesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | "all">("all");
 
@@ -26,6 +29,12 @@ export default function InvoicesPage() {
   // Fetch stats
   const { data: stats } = trpc.invoices.getStats.useQuery();
 
+  // Fetch selected invoice details
+  const { data: invoiceDetails } = trpc.invoices.getById.useQuery(
+    { id: selectedInvoiceId! },
+    { enabled: !!selectedInvoiceId }
+  );
+
   // Mutations
   const createInvoice = trpc.invoices.create.useMutation({
     onSuccess: () => {
@@ -35,7 +44,9 @@ export default function InvoicesPage() {
       setIsFormOpen(false);
     },
     onError: (error) => {
-      alert(`Error creating invoice: ${error.message}`);
+      toast.error("Failed to create invoice", {
+        description: error.message,
+      });
     },
   });
 
@@ -45,7 +56,9 @@ export default function InvoicesPage() {
       utils.invoices.getStats.invalidate();
     },
     onError: (error) => {
-      alert(`Error deleting invoice: ${error.message}`);
+      toast.error("Failed to delete invoice", {
+        description: error.message,
+      });
     },
   });
 
@@ -55,7 +68,9 @@ export default function InvoicesPage() {
       utils.invoices.getStats.invalidate();
     },
     onError: (error) => {
-      alert(`Error updating invoice: ${error.message}`);
+      toast.error("Failed to update invoice", {
+        description: error.message,
+      });
     },
   });
 
@@ -92,10 +107,14 @@ export default function InvoicesPage() {
         status: action === "draft" ? "draft" : "sent",
       });
 
-      alert(
-        action === "draft"
-          ? "Invoice saved as draft!"
-          : "Invoice sent successfully!"
+      toast.success(
+        action === "draft" ? "Invoice saved" : "Invoice sent",
+        {
+          description:
+            action === "draft"
+              ? "Your invoice has been saved as a draft."
+              : "Your invoice has been sent successfully.",
+        }
       );
     } catch (error) {
       // Error is handled by onError callback
@@ -103,10 +122,37 @@ export default function InvoicesPage() {
     }
   };
 
+  // Transform invoice details for the detail view
+  const detailData: InvoiceDetailData | null = invoiceDetails
+    ? {
+        id: invoiceDetails.id,
+        invoiceNumber: invoiceDetails.invoiceNumber,
+        customerName: invoiceDetails.contact.name,
+        customerEmail: invoiceDetails.contact.email || undefined,
+        invoiceDate: invoiceDetails.invoiceDate.toISOString().split("T")[0],
+        dueDate: invoiceDetails.dueDate.toISOString().split("T")[0],
+        status: invoiceDetails.status as InvoiceStatus,
+        total: Number(invoiceDetails.total),
+        subtotal: Number(invoiceDetails.subtotal),
+        taxTotal: Number(invoiceDetails.taxTotal),
+        amountPaid: Number(invoiceDetails.amountPaid),
+        amountDue: Number(invoiceDetails.amountDue),
+        currency: invoiceDetails.currency,
+        notes: invoiceDetails.notes || undefined,
+        terms: invoiceDetails.terms || undefined,
+        lines: invoiceDetails.lines.map((line) => ({
+          id: line.id,
+          description: line.description,
+          quantity: Number(line.quantity),
+          unitPrice: Number(line.unitPrice),
+          taxRate: Number(line.taxRate),
+          amount: Number(line.amount),
+        })),
+      }
+    : null;
+
   const handleViewInvoice = (invoice: Invoice) => {
-    console.log("View invoice:", invoice);
-    // TODO: Navigate to invoice detail page or open modal
-    alert(`Viewing invoice ${invoice.invoiceNumber} - detail view coming soon!`);
+    setSelectedInvoiceId(invoice.id);
   };
 
   const handleSendInvoice = async (invoice: Invoice) => {
@@ -115,7 +161,9 @@ export default function InvoicesPage() {
         id: invoice.id,
         status: "sent",
       });
-      alert(`Invoice ${invoice.invoiceNumber} sent successfully!`);
+      toast.success("Invoice sent", {
+        description: `${invoice.invoiceNumber} has been sent successfully.`,
+      });
     } catch (error) {
       console.error("Failed to send invoice:", error);
     }
@@ -124,20 +172,21 @@ export default function InvoicesPage() {
   const handleDownloadInvoice = (invoice: Invoice) => {
     console.log("Download invoice:", invoice);
     // TODO: Generate and download PDF
-    alert(`PDF generation coming soon! ${invoice.invoiceNumber}.pdf`);
+    toast.info("Feature coming soon", {
+      description: "PDF generation will be available in the next update.",
+    });
   };
 
   const handleDeleteInvoice = async (invoice: Invoice) => {
-    if (!confirm(`Are you sure you want to delete ${invoice.invoiceNumber}?`)) {
-      return;
-    }
-
-    try {
-      await deleteInvoice.mutateAsync({ id: invoice.id });
-      alert(`Invoice ${invoice.invoiceNumber} deleted successfully.`);
-    } catch (error) {
-      console.error("Failed to delete invoice:", error);
-    }
+    // Use toast.promise for async operations with loading state
+    toast.promise(
+      deleteInvoice.mutateAsync({ id: invoice.id }),
+      {
+        loading: `Deleting ${invoice.invoiceNumber}...`,
+        success: `${invoice.invoiceNumber} deleted successfully`,
+        error: "Failed to delete invoice",
+      }
+    );
   };
 
   return (
@@ -220,6 +269,59 @@ export default function InvoicesPage() {
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
         onSubmit={handleCreateInvoice}
+      />
+
+      {/* Invoice Detail Sheet */}
+      <InvoiceDetail
+        invoice={detailData}
+        open={!!selectedInvoiceId}
+        onOpenChange={(open) => !open && setSelectedInvoiceId(null)}
+        onSend={(invoice) => {
+          handleSendInvoice({
+            id: invoice.id,
+            invoiceNumber: invoice.invoiceNumber,
+            customerName: invoice.customerName,
+            customerEmail: invoice.customerEmail,
+            invoiceDate: invoice.invoiceDate,
+            dueDate: invoice.dueDate,
+            status: invoice.status,
+            total: invoice.total,
+            amountPaid: invoice.amountPaid,
+            amountDue: invoice.amountDue,
+            currency: invoice.currency,
+          });
+          setSelectedInvoiceId(null);
+        }}
+        onDownload={(invoice) => {
+          handleDownloadInvoice({
+            id: invoice.id,
+            invoiceNumber: invoice.invoiceNumber,
+            customerName: invoice.customerName,
+            customerEmail: invoice.customerEmail,
+            invoiceDate: invoice.invoiceDate,
+            dueDate: invoice.dueDate,
+            status: invoice.status,
+            total: invoice.total,
+            amountPaid: invoice.amountPaid,
+            amountDue: invoice.amountDue,
+            currency: invoice.currency,
+          });
+        }}
+        onDelete={(invoice) => {
+          handleDeleteInvoice({
+            id: invoice.id,
+            invoiceNumber: invoice.invoiceNumber,
+            customerName: invoice.customerName,
+            customerEmail: invoice.customerEmail,
+            invoiceDate: invoice.invoiceDate,
+            dueDate: invoice.dueDate,
+            status: invoice.status,
+            total: invoice.total,
+            amountPaid: invoice.amountPaid,
+            amountDue: invoice.amountDue,
+            currency: invoice.currency,
+          });
+        }}
       />
     </div>
   );
