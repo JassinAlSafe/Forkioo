@@ -4,11 +4,12 @@
  */
 import { createTRPCRouter } from "../trpc";
 import { healthRouter } from "./health";
+import { invoicesRouter } from "./invoices";
 
 export const appRouter = createTRPCRouter({
   health: healthRouter,
+  invoices: invoicesRouter,
   // Add more routers here as we build features:
-  // invoices: invoicesRouter,
   // transactions: transactionsRouter,
   // contacts: contactsRouter,
   // dashboard: dashboardRouter,

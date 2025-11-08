@@ -114,6 +114,82 @@ pnpm dev
 
 Visit [http://localhost:3000](http://localhost:3000) 🎉
 
+### 7. Testing Invoice Features
+
+Once the app is running, you can test the complete invoice workflow:
+
+**First Time Setup:**
+1. Sign in with Clerk (create account if needed)
+2. You'll automatically be assigned to a company (this happens on first login)
+3. Navigate to **Dashboard → Invoices**
+
+**Creating Your First Invoice:**
+1. Click "New Invoice" button
+2. Fill in customer information:
+   - Customer name (required)
+   - Customer email (optional)
+   - Invoice date (defaults to today)
+   - Due date (defaults to 30 days)
+3. Add line items:
+   - Description, quantity, unit price
+   - Tax rate (optional, e.g., 0.20 for 20%)
+   - Click "+ Add Line Item" for multiple lines
+4. Add notes and payment terms (optional)
+5. Choose action:
+   - **Save as Draft**: Saves without sending
+   - **Send Invoice**: Marks as sent (email delivery coming in Phase 2C)
+
+**Managing Invoices:**
+- **Search**: Filter by invoice number, customer name, or email
+- **Status Filter**: View invoices by status (Draft, Sent, Paid, Overdue, etc.)
+- **Actions**:
+  - **View**: Opens invoice details (modal/page coming soon)
+  - **Send**: Changes status to "sent" (for drafts)
+  - **Download**: Generates PDF (coming in Phase 2C)
+  - **Delete**: Removes invoice (drafts only)
+
+**Features Implemented (Phase 2A-2B):**
+- ✅ Complete invoice creation form with validation
+- ✅ Dynamic line items with real-time total calculations
+- ✅ Customer management (auto-creates contacts)
+- ✅ Invoice list with search and filtering
+- ✅ Status tracking (draft, sent, viewed, partial, paid, overdue, void)
+- ✅ Real-time stats dashboard (Total, Paid, Pending, Overdue)
+- ✅ Multi-tenant data isolation (company-based)
+- ✅ Full database persistence with Prisma + PostgreSQL
+
+**Coming Next (Phase 2C):**
+- 🔜 PDF generation
+- 🔜 Email delivery via SendGrid
+- 🔜 Invoice detail view
+- 🔜 Payment recording
+- 🔜 Customer management UI
+- 🔜 Toast notifications (replacing alerts)
+
+**Troubleshooting:**
+
+If you get "You don't belong to any company" error:
+```bash
+# Option 1: Seed database with test company and user
+pnpm db:seed
+
+# Option 2: Manual setup via Prisma Studio
+pnpm db:studio
+# Create a Company, User, and CompanyUser linking them
+```
+
+If Prisma client is not generated:
+```bash
+# Re-generate Prisma client
+npx prisma generate
+
+# If issues persist, try:
+rm -rf node_modules/.prisma
+rm -rf node_modules/@prisma
+npm install
+npx prisma generate
+```
+
 ---
 
 ## Production Deployment

@@ -1,78 +1,143 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InvoiceForm } from "@/components/invoices/invoice-form";
 import { InvoiceList, type Invoice } from "@/components/invoices/invoice-list";
 import { InvoiceFilters } from "@/components/invoices/invoice-filters";
-import { type InvoiceFormData } from "@/lib/validations/invoice";
+import { type InvoiceFormData, generateInvoiceNumber } from "@/lib/validations/invoice";
 import { type InvoiceStatus } from "@/components/invoices/invoice-status-badge";
-import { mockInvoices } from "@/lib/mock-data/invoices";
+import { trpc } from "@/lib/trpc/client";
 
 export default function InvoicesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [invoices, setInvoices] = useState<Invoice[]>(mockInvoices);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | "all">("all");
 
-  // Filter invoices based on search and status
-  const filteredInvoices = useMemo(() => {
-    return invoices.filter((invoice) => {
-      // Search filter
-      const searchLower = search.toLowerCase();
-      const matchesSearch =
-        invoice.invoiceNumber.toLowerCase().includes(searchLower) ||
-        invoice.customerName.toLowerCase().includes(searchLower) ||
-        invoice.customerEmail?.toLowerCase().includes(searchLower);
+  const utils = trpc.useUtils();
 
-      // Status filter
-      const matchesStatus =
-        statusFilter === "all" || invoice.status === statusFilter;
+  // Fetch invoices from database
+  const { data: invoicesData, isLoading: invoicesLoading } = trpc.invoices.list.useQuery({
+    search: search || undefined,
+    status: statusFilter !== "all" ? statusFilter : undefined,
+  });
 
-      return matchesSearch && matchesStatus;
-    });
-  }, [invoices, search, statusFilter]);
+  // Fetch stats
+  const { data: stats } = trpc.invoices.getStats.useQuery();
 
-  const handleCreateInvoice = (
+  // Mutations
+  const createInvoice = trpc.invoices.create.useMutation({
+    onSuccess: () => {
+      // Invalidate and refetch invoices list and stats
+      utils.invoices.list.invalidate();
+      utils.invoices.getStats.invalidate();
+      setIsFormOpen(false);
+    },
+    onError: (error) => {
+      alert(`Error creating invoice: ${error.message}`);
+    },
+  });
+
+  const deleteInvoice = trpc.invoices.delete.useMutation({
+    onSuccess: () => {
+      utils.invoices.list.invalidate();
+      utils.invoices.getStats.invalidate();
+    },
+    onError: (error) => {
+      alert(`Error deleting invoice: ${error.message}`);
+    },
+  });
+
+  const updateInvoiceStatus = trpc.invoices.updateStatus.useMutation({
+    onSuccess: () => {
+      utils.invoices.list.invalidate();
+      utils.invoices.getStats.invalidate();
+    },
+    onError: (error) => {
+      alert(`Error updating invoice: ${error.message}`);
+    },
+  });
+
+  // Transform database invoices to match component interface
+  const invoices: Invoice[] =
+    invoicesData?.invoices.map((inv) => ({
+      id: inv.id,
+      invoiceNumber: inv.invoiceNumber,
+      customerName: inv.contact.name,
+      customerEmail: inv.contact.email || undefined,
+      invoiceDate: inv.invoiceDate.toISOString().split("T")[0],
+      dueDate: inv.dueDate.toISOString().split("T")[0],
+      status: inv.status as InvoiceStatus,
+      total: Number(inv.total),
+      amountPaid: Number(inv.amountPaid),
+      amountDue: Number(inv.amountDue),
+      currency: inv.currency,
+    })) || [];
+
+  const handleCreateInvoice = async (
     data: InvoiceFormData,
     action: "draft" | "send"
   ) => {
-    console.log("Creating invoice:", { data, action });
+    try {
+      await createInvoice.mutateAsync({
+        invoiceNumber: generateInvoiceNumber(),
+        customerName: data.customerName,
+        customerEmail: data.customerEmail || undefined,
+        invoiceDate: new Date(data.invoiceDate),
+        dueDate: new Date(data.dueDate),
+        lines: data.lines,
+        notes: data.notes || undefined,
+        terms: data.terms || undefined,
+        status: action === "draft" ? "draft" : "sent",
+      });
 
-    // TODO: Connect to tRPC mutation to save invoice
-    // For now, just show success and close modal
-    setIsFormOpen(false);
-
-    // Show success toast (we'll add toast component later)
-    alert(
-      action === "draft"
-        ? "Invoice saved as draft!"
-        : "Invoice sent successfully!"
-    );
+      alert(
+        action === "draft"
+          ? "Invoice saved as draft!"
+          : "Invoice sent successfully!"
+      );
+    } catch (error) {
+      // Error is handled by onError callback
+      console.error("Failed to create invoice:", error);
+    }
   };
 
   const handleViewInvoice = (invoice: Invoice) => {
     console.log("View invoice:", invoice);
     // TODO: Navigate to invoice detail page or open modal
+    alert(`Viewing invoice ${invoice.invoiceNumber} - detail view coming soon!`);
   };
 
-  const handleSendInvoice = (invoice: Invoice) => {
-    console.log("Send invoice:", invoice);
-    // TODO: Implement send invoice logic
-    alert(`Sending invoice ${invoice.invoiceNumber}...`);
+  const handleSendInvoice = async (invoice: Invoice) => {
+    try {
+      await updateInvoiceStatus.mutateAsync({
+        id: invoice.id,
+        status: "sent",
+      });
+      alert(`Invoice ${invoice.invoiceNumber} sent successfully!`);
+    } catch (error) {
+      console.error("Failed to send invoice:", error);
+    }
   };
 
   const handleDownloadInvoice = (invoice: Invoice) => {
     console.log("Download invoice:", invoice);
     // TODO: Generate and download PDF
-    alert(`Downloading ${invoice.invoiceNumber}.pdf...`);
+    alert(`PDF generation coming soon! ${invoice.invoiceNumber}.pdf`);
   };
 
-  const handleDeleteInvoice = (invoice: Invoice) => {
-    console.log("Delete invoice:", invoice);
-    // TODO: Connect to tRPC mutation
-    setInvoices(invoices.filter((inv) => inv.id !== invoice.id));
+  const handleDeleteInvoice = async (invoice: Invoice) => {
+    if (!confirm(`Are you sure you want to delete ${invoice.invoiceNumber}?`)) {
+      return;
+    }
+
+    try {
+      await deleteInvoice.mutateAsync({ id: invoice.id });
+      alert(`Invoice ${invoice.invoiceNumber} deleted successfully.`);
+    } catch (error) {
+      console.error("Failed to delete invoice:", error);
+    }
   };
 
   return (
@@ -104,41 +169,51 @@ export default function InvoicesPage() {
         <div className="rounded-lg border bg-white p-4">
           <div className="text-sm text-gray-600">Total Invoices</div>
           <div className="mt-1 text-2xl font-bold tabular-nums">
-            {invoices.length}
+            {stats?.total ?? 0}
           </div>
         </div>
         <div className="rounded-lg border bg-white p-4">
           <div className="text-sm text-gray-600">Paid</div>
           <div className="mt-1 text-2xl font-bold tabular-nums text-success-600">
-            {invoices.filter((inv) => inv.status === "paid").length}
+            {stats?.paid ?? 0}
           </div>
         </div>
         <div className="rounded-lg border bg-white p-4">
           <div className="text-sm text-gray-600">Pending</div>
           <div className="mt-1 text-2xl font-bold tabular-nums text-warning-600">
-            {
-              invoices.filter((inv) =>
-                ["sent", "viewed", "partial"].includes(inv.status)
-              ).length
-            }
+            {stats?.pending ?? 0}
           </div>
         </div>
         <div className="rounded-lg border bg-white p-4">
           <div className="text-sm text-gray-600">Overdue</div>
           <div className="mt-1 text-2xl font-bold tabular-nums text-danger-600">
-            {invoices.filter((inv) => inv.status === "overdue").length}
+            {stats?.overdue ?? 0}
           </div>
         </div>
       </div>
 
       {/* Invoice List */}
-      <InvoiceList
-        invoices={filteredInvoices}
-        onView={handleViewInvoice}
-        onSend={handleSendInvoice}
-        onDownload={handleDownloadInvoice}
-        onDelete={handleDeleteInvoice}
-      />
+      {invoicesLoading ? (
+        <div className="rounded-xl border bg-white p-12 text-center">
+          <p className="text-gray-600">Loading invoices...</p>
+        </div>
+      ) : invoices.length === 0 ? (
+        <div className="rounded-xl border bg-white p-12 text-center">
+          <p className="text-gray-600">
+            {search || statusFilter !== "all"
+              ? "No invoices match your filters."
+              : "No invoices yet. Create your first invoice to get started!"}
+          </p>
+        </div>
+      ) : (
+        <InvoiceList
+          invoices={invoices}
+          onView={handleViewInvoice}
+          onSend={handleSendInvoice}
+          onDownload={handleDownloadInvoice}
+          onDelete={handleDeleteInvoice}
+        />
+      )}
 
       {/* Invoice Form Modal */}
       <InvoiceForm
