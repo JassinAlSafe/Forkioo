@@ -157,15 +157,37 @@ export default function InvoicesPage() {
 
   const handleSendInvoice = async (invoice: Invoice) => {
     try {
-      await updateInvoiceStatus.mutateAsync({
-        id: invoice.id,
-        status: "sent",
+      // Show loading toast
+      const sendToast = toast.loading(`Sending ${invoice.invoiceNumber} via email...`);
+
+      // Call API to send invoice email
+      const response = await fetch(`/api/invoices/${invoice.id}/send`, {
+        method: "POST",
       });
-      toast.success("Invoice sent", {
-        description: `${invoice.invoiceNumber} has been sent successfully.`,
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send invoice");
+      }
+
+      // Invalidate queries to refresh the invoice status
+      utils.invoices.list.invalidate();
+      utils.invoices.getStats.invalidate();
+      if (selectedInvoiceId === invoice.id) {
+        utils.invoices.getById.invalidate({ id: invoice.id });
+      }
+
+      // Update toast to success
+      toast.success("Invoice sent via email", {
+        id: sendToast,
+        description: data.message || `${invoice.invoiceNumber} has been sent successfully.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to send invoice:", error);
+      toast.error("Failed to send invoice", {
+        description: error.message || "An error occurred while sending the invoice.",
+      });
     }
   };
 

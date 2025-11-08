@@ -83,6 +83,11 @@ REDIS_URL="redis://localhost:6379"
 # App URL
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
+# SendGrid (for sending invoice emails)
+SENDGRID_API_KEY="SG...."
+SENDGRID_FROM_EMAIL="invoices@yourdomain.com"
+SENDGRID_FROM_NAME="Your Company Name"
+
 # Optional: For development
 NODE_ENV="development"
 ```
@@ -92,6 +97,16 @@ NODE_ENV="development"
 2. Create a new application
 3. Copy publishable key and secret key
 4. Add `http://localhost:3000` to allowed origins
+
+**Get SendGrid API Key (for sending invoices):**
+1. Go to [SendGrid](https://sendgrid.com) and create a free account
+2. Navigate to Settings → API Keys
+3. Create a new API key with "Mail Send" permissions
+4. Copy the API key (starts with "SG.")
+5. Set up a verified sender email in SendGrid
+6. Use the verified sender email as `SENDGRID_FROM_EMAIL`
+
+**Note:** Without SendGrid configured, you can still create and download invoices, but email sending will fail.
 
 ### 5. Run Database Migrations
 
@@ -144,11 +159,11 @@ Once the app is running, you can test the complete invoice workflow:
 - **Status Filter**: View invoices by status (Draft, Sent, Paid, Overdue, etc.)
 - **Actions**:
   - **View**: Opens invoice detail panel with all information
-  - **Send**: Changes status to "sent" (for drafts)
+  - **Send**: Sends invoice via email with PDF attachment (for drafts)
   - **Download**: Generates and downloads professional PDF invoice
   - **Delete**: Removes invoice (drafts only)
 
-**Features Implemented (Phase 2A-2D):**
+**Features Implemented (Phase 2A-2E):**
 - ✅ Complete invoice creation form with validation
 - ✅ Dynamic line items with real-time total calculations
 - ✅ Customer management (auto-creates contacts)
@@ -160,14 +175,16 @@ Once the app is running, you can test the complete invoice workflow:
 - ✅ Toast notifications (Sonner) for all actions
 - ✅ Invoice detail view with sliding panel
 - ✅ Professional PDF generation and download
+- ✅ Email delivery via SendGrid with PDF attachment
+- ✅ Professional HTML email templates
 - ✅ Loading states for all async operations
 
-**Coming Next (Phase 2E+):**
-- 🔜 Email delivery via SendGrid
+**Coming Next (Phase 3):**
 - 🔜 Payment recording
 - 🔜 Customer management UI
 - 🔜 Expense tracking
 - 🔜 Bank integration
+- 🔜 Financial reports
 
 **Troubleshooting:**
 
