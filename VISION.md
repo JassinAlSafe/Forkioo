@@ -83,7 +83,7 @@ Small business owners are drowning in financial admin. Traditional accounting so
 ### Technology Stack
 
 **Frontend:**
-- Next.js 14 (App Router) + TypeScript
+- Next.js 16 (App Router) + TypeScript
 - Tailwind CSS + shadcn/ui
 - Zustand (UI state) + TanStack Query (server state)
 - React Hook Form + Zod (forms)

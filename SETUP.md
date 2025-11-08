@@ -312,7 +312,7 @@ pnpm analyze
 ```
 forkioo/
 ├── src/
-│   ├── app/                    # Next.js 14 App Router
+│   ├── app/                    # Next.js 16 App Router
 │   │   ├── (auth)/            # Auth pages (sign-in, sign-up)
 │   │   ├── (dashboard)/       # Main app (protected routes)
 │   │   ├── api/               # API routes + webhooks
@@ -362,7 +362,7 @@ forkioo/
 
 | Layer | Technology | Purpose |
 |-------|------------|---------|
-| **Frontend** | Next.js 14 (App Router) | React framework with SSR/SSG |
+| **Frontend** | Next.js 16 (App Router) | React framework with SSR/SSG |
 | | TypeScript | Type safety |
 | | Tailwind CSS | Utility-first styling |
 | | shadcn/ui | Beautiful, accessible components |
