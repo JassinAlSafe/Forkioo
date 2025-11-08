@@ -5,39 +5,41 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
-  Settings as SettingsIcon,
   Building2,
   Palette,
   FileText,
   Mail,
-  DollarSign,
   Save,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useCompany } from "@/hooks/use-company";
+import { BusinessType, Currency } from "@/types/enums";
+import { BUSINESS_TYPE_OPTIONS, CURRENCY_OPTIONS } from "@/lib/constants/options";
+import { emailSchema, optionalEmailSchema } from "@/lib/constants/validation";
 
 const profileSchema = z.object({
-  name: z.string().min(1, "Company name is required"),
-  businessType: z.enum(["sole_proprietor", "llc", "corporation", "partnership", "other"]).optional(),
-  taxId: z.string().optional(),
+  name: z.string().min(1, "Company name is required").max(255),
+  businessType: z.nativeEnum(BusinessType).optional(),
+  taxId: z.string().max(20).optional(),
   countryCode: z.string().length(2).optional(),
   fiscalYearEnd: z.string().regex(/^\d{2}-\d{2}$/).optional(),
 });
 
 const settingsSchema = z.object({
-  invoicePrefix: z.string().optional(),
-  defaultPaymentTermsDays: z.number().int().positive().optional().or(z.literal("")),
+  invoicePrefix: z.string().max(10).optional(),
+  defaultPaymentTermsDays: z.number().int().positive().max(365).optional().or(z.literal("")),
   defaultTaxRate: z.number().min(0).max(100).optional().or(z.literal("")),
-  taxLabel: z.string().optional(),
+  taxLabel: z.string().max(50).optional(),
   primaryColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional().or(z.literal("")),
-  invoiceFooter: z.string().optional(),
-  invoiceTerms: z.string().optional(),
-  emailFromName: z.string().optional(),
-  emailReplyTo: z.string().email().optional().or(z.literal("")),
-  currency: z.string().length(3).optional(),
+  invoiceFooter: z.string().max(1000).optional(),
+  invoiceTerms: z.string().max(2000).optional(),
+  emailFromName: z.string().max(100).optional(),
+  emailReplyTo: optionalEmailSchema,
+  currency: z.nativeEnum(Currency).optional(),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -45,6 +47,8 @@ type SettingsFormData = z.infer<typeof settingsSchema>;
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<"profile" | "branding" | "invoices" | "email">("profile");
+  const [profileSuccess, setProfileSuccess] = useState(false);
+  const [settingsSuccess, setSettingsSuccess] = useState(false);
 
   const companyHooks = useCompany();
 
@@ -94,6 +98,7 @@ export default function SettingsPage() {
   });
 
   const onSubmitProfile = async (data: ProfileFormData) => {
+    setProfileSuccess(false);
     await companyHooks.updateProfile.mutateAsync({
       name: data.name,
       businessType: data.businessType,
@@ -101,9 +106,12 @@ export default function SettingsPage() {
       countryCode: data.countryCode || undefined,
       fiscalYearEnd: data.fiscalYearEnd || undefined,
     });
+    setProfileSuccess(true);
+    setTimeout(() => setProfileSuccess(false), 3000);
   };
 
   const onSubmitSettings = async (data: SettingsFormData) => {
+    setSettingsSuccess(false);
     await companyHooks.updateSettings.mutateAsync({
       invoicePrefix: data.invoicePrefix || undefined,
       defaultPaymentTermsDays: data.defaultPaymentTermsDays ? Number(data.defaultPaymentTermsDays) : undefined,
@@ -116,6 +124,8 @@ export default function SettingsPage() {
       emailReplyTo: data.emailReplyTo || undefined,
       currency: data.currency || undefined,
     });
+    setSettingsSuccess(true);
+    setTimeout(() => setSettingsSuccess(false), 3000);
   };
 
   const tabs = [
@@ -169,7 +179,7 @@ export default function SettingsPage() {
         {/* Company Profile Tab */}
         {activeTab === "profile" && (
           <form onSubmit={handleSubmitProfile(onSubmitProfile)} className="space-y-6">
-            <div className="rounded-xl border bg-white p-6">
+            <div className="card-elevated rounded-xl border bg-white p-6">
               <h2 className="mb-4 text-lg font-semibold text-gray-900">Company Information</h2>
 
               <div className="space-y-4">
@@ -195,11 +205,11 @@ export default function SettingsPage() {
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
                   >
                     <option value="">-- Select type --</option>
-                    <option value="sole_proprietor">Sole Proprietor</option>
-                    <option value="llc">LLC</option>
-                    <option value="corporation">Corporation</option>
-                    <option value="partnership">Partnership</option>
-                    <option value="other">Other</option>
+                    {BUSINESS_TYPE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -234,8 +244,14 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="mt-6 flex justify-end">
-                <Button type="submit" disabled={companyHooks.updateProfile.isPending}>
+              <div className="mt-6 flex items-center justify-between">
+                {profileSuccess && (
+                  <div className="flex items-center gap-2 text-success-600">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span className="text-sm font-medium">Changes saved successfully</span>
+                  </div>
+                )}
+                <Button type="submit" disabled={companyHooks.updateProfile.isPending} className="ml-auto">
                   <Save className="mr-2 h-4 w-4" />
                   {companyHooks.updateProfile.isPending ? "Saving..." : "Save Changes"}
                 </Button>
@@ -247,7 +263,7 @@ export default function SettingsPage() {
         {/* Branding Tab */}
         {activeTab === "branding" && (
           <form onSubmit={handleSubmitSettings(onSubmitSettings)} className="space-y-6">
-            <div className="rounded-xl border bg-white p-6">
+            <div className="card-elevated rounded-xl border bg-white p-6">
               <h2 className="mb-4 text-lg font-semibold text-gray-900">Brand Colors</h2>
 
               <div className="space-y-4">
@@ -278,17 +294,23 @@ export default function SettingsPage() {
                     {...registerSettings("currency")}
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
                   >
-                    <option value="USD">USD - US Dollar</option>
-                    <option value="GBP">GBP - British Pound</option>
-                    <option value="EUR">EUR - Euro</option>
-                    <option value="CAD">CAD - Canadian Dollar</option>
-                    <option value="AUD">AUD - Australian Dollar</option>
+                    {CURRENCY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
 
-              <div className="mt-6 flex justify-end">
-                <Button type="submit" disabled={companyHooks.updateSettings.isPending}>
+              <div className="mt-6 flex items-center justify-between">
+                {settingsSuccess && activeTab === "branding" && (
+                  <div className="flex items-center gap-2 text-success-600">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span className="text-sm font-medium">Changes saved successfully</span>
+                  </div>
+                )}
+                <Button type="submit" disabled={companyHooks.updateSettings.isPending} className="ml-auto">
                   <Save className="mr-2 h-4 w-4" />
                   {companyHooks.updateSettings.isPending ? "Saving..." : "Save Changes"}
                 </Button>
@@ -300,7 +322,7 @@ export default function SettingsPage() {
         {/* Invoice Defaults Tab */}
         {activeTab === "invoices" && (
           <form onSubmit={handleSubmitSettings(onSubmitSettings)} className="space-y-6">
-            <div className="rounded-xl border bg-white p-6">
+            <div className="card-elevated rounded-xl border bg-white p-6">
               <h2 className="mb-4 text-lg font-semibold text-gray-900">Invoice Settings</h2>
 
               <div className="space-y-4">
@@ -368,8 +390,14 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="mt-6 flex justify-end">
-                <Button type="submit" disabled={companyHooks.updateSettings.isPending}>
+              <div className="mt-6 flex items-center justify-between">
+                {settingsSuccess && activeTab === "invoices" && (
+                  <div className="flex items-center gap-2 text-success-600">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span className="text-sm font-medium">Changes saved successfully</span>
+                  </div>
+                )}
+                <Button type="submit" disabled={companyHooks.updateSettings.isPending} className="ml-auto">
                   <Save className="mr-2 h-4 w-4" />
                   {companyHooks.updateSettings.isPending ? "Saving..." : "Save Changes"}
                 </Button>
@@ -381,7 +409,7 @@ export default function SettingsPage() {
         {/* Email Settings Tab */}
         {activeTab === "email" && (
           <form onSubmit={handleSubmitSettings(onSubmitSettings)} className="space-y-6">
-            <div className="rounded-xl border bg-white p-6">
+            <div className="card-elevated rounded-xl border bg-white p-6">
               <h2 className="mb-4 text-lg font-semibold text-gray-900">Email Configuration</h2>
 
               <div className="space-y-4">
@@ -408,8 +436,14 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="mt-6 flex justify-end">
-                <Button type="submit" disabled={companyHooks.updateSettings.isPending}>
+              <div className="mt-6 flex items-center justify-between">
+                {settingsSuccess && activeTab === "email" && (
+                  <div className="flex items-center gap-2 text-success-600">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span className="text-sm font-medium">Changes saved successfully</span>
+                  </div>
+                )}
+                <Button type="submit" disabled={companyHooks.updateSettings.isPending} className="ml-auto">
                   <Save className="mr-2 h-4 w-4" />
                   {companyHooks.updateSettings.isPending ? "Saving..." : "Save Changes"}
                 </Button>
