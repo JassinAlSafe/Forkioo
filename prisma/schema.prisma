@@ -1,0 +1,154 @@
+// Prisma schema for Forkioo
+// Double-entry accounting system with multi-tenant support
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// TENANT & USERS
+// ============================================
+
+model Company {
+  id            String   @id @default(uuid())
+  name          String
+  businessType  String?  @map("business_type") // sole_proprietor, llc, corporation
+  currency      String   @default("USD")
+  fiscalYearEnd String   @default("12-31") @map("fiscal_year_end") // MM-DD
+  countryCode   String   @default("US") @map("country_code")
+  taxId         String?  @map("tax_id") // EIN, VAT number
+
+  // Metadata
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Settings (flexible JSONB)
+  settings Json @default("{}")
+
+  // Relations
+  users            CompanyUser[]
+  accounts         Account[]
+  transactions     Transaction[]
+  transactionLines TransactionLine[]
+  contacts         Contact[]
+  invoices         Invoice[]
+  payments         Payment[]
+  bankAccounts     BankAccount[]
+  bankTransactions BankTransaction[]
+  auditLogs        AuditLog[]
+
+  @@index([deletedAt])
+  @@map("companies")
+}
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  fullName    String   @map("full_name")
+  avatarUrl   String?  @map("avatar_url")
+
+  // Clerk integration
+  clerkUserId  String   @unique @map("clerk_user_id")
+  authProvider String   @default("email") @map("auth_provider") // email, google, github
+
+  // Metadata
+  createdAt   DateTime  @default(now()) @map("created_at")
+  lastLoginAt DateTime? @map("last_login_at")
+
+  // Relations
+  companies             CompanyUser[]
+  createdTransactions   Transaction[]
+  createdInvoices       Invoice[]
+  createdPayments       Payment[]
+  voidedTransactions    Transaction[]        @relation("VoidedBy")
+  auditLogs             AuditLog[]
+  matchedBankTransactions BankTransaction[] @relation("MatchedBy")
+
+  @@index([email])
+  @@map("users")
+}
+
+model CompanyUser {
+  id        String   @id @default(uuid())
+  companyId String   @map("company_id")
+  userId    String   @map("user_id")
+
+  role String @default("member") // owner, admin, accountant, member, viewer
+
+  // Granular permissions
+  permissions Json @default("{\"invoices\": {\"create\": true, \"read\": true, \"update\": true, \"delete\": false}, \"expenses\": {\"create\": true, \"read\": true, \"update\": true, \"delete\": false}, \"reports\": {\"read\": true}, \"settings\": {\"read\": false, \"update\": false}}")
+
+  invitedBy   String?   @map("invited_by")
+  invitedAt   DateTime? @map("invited_at")
+  acceptedAt  DateTime? @map("accepted_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, userId])
+  @@index([companyId])
+  @@index([userId])
+  @@map("company_users")
+}
+
+// ============================================
+// CHART OF ACCOUNTS
+// ============================================
+
+model Account {
+  id        String  @id @default(uuid())
+  companyId String  @map("company_id")
+
+  // Account identification
+  code String
+  name String
+
+  // Classification
+  type    String // asset, liability, equity, revenue, expense
+  subType String? @map("sub_type")
+
+  // Behavior flags
+  isBankAccount    Boolean @default(false) @map("is_bank_account")
+  isControlAccount Boolean @default(false) @map("is_control_account")
+  isSystem         Boolean @default(false) @map("is_system")
+  isActive         Boolean @default(true) @map("is_active")
+
+  // Hierarchy
+  parentAccountId String? @map("parent_account_id")
+
+  // Balance (denormalized)
+  currentBalance Decimal @default(0) @map("current_balance") @db.Decimal(19, 4)
+  currency       String  @default("USD")
+
+  // Tax
+  taxCategory String? @map("tax_category")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  transactionLines TransactionLine[]
+  bankAccounts     BankAccount[]
+  invoiceLines     InvoiceLine[]
+  suggestedBankTransactions BankTransaction[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([type])
+  @@map("accounts")
+}
+
+// Simplified schema - just showing key models
+// Full schema in ARCHITECTURE.md
+
+@@map("prisma_schema_version_1")
