@@ -4,35 +4,63 @@
 
 @layer base {
   :root {
+    /* Backgrounds */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
+    /* Cards & Surfaces */
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
 
+    /* Popovers */
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary Brand Color - Trustworthy Blue */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
+    /* Secondary */
+    --secondary: 214 32% 91%;
     --secondary-foreground: 222.2 47.4% 11.2%;
 
+    /* Muted */
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent - Emerald for positive actions */
+    --accent: 142 76% 36%;
+    --accent-foreground: 0 0% 100%;
 
+    /* Destructive */
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
+    /* Border & Input */
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --ring: 217 91% 60%;
 
+    /* Border Radius */
     --radius: 0.5rem;
+
+    /* Shadows - Financial App Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+    /* Spacing Scale for consistent layouts */
+    --space-4xs: 0.125rem;  /* 2px */
+    --space-3xs: 0.25rem;   /* 4px */
+    --space-2xs: 0.5rem;    /* 8px */
+    --space-xs: 0.75rem;    /* 12px */
+    --space-sm: 1rem;       /* 16px */
+    --space-md: 1.5rem;     /* 24px */
+    --space-lg: 2rem;       /* 32px */
+    --space-xl: 3rem;       /* 48px */
+    --space-2xl: 4rem;      /* 64px */
+    --space-3xl: 6rem;      /* 96px */
   }
 
   .dark {
@@ -54,8 +82,8 @@
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 142 70% 45%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
@@ -70,13 +98,108 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "kern", "liga", "clig", "calt";
+  }
+
+  /* Typography Utilities */
+  .font-display {
+    font-family: var(--font-display), var(--font-inter), system-ui, sans-serif;
+  }
+
+  .font-mono {
+    font-family: var(--font-mono), ui-monospace, monospace;
   }
 
   /* Financial numbers should use tabular nums */
   .tabular-nums {
     font-feature-settings: "tnum";
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Smooth antialiasing for better text rendering */
+  .text-smooth {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Heading defaults with display font */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+    font-feature-settings: "kern", "liga", "clig", "calt", "case";
+  }
+}
+
+@layer components {
+  /* Card Component Enhancements */
+  .card-elevated {
+    box-shadow: var(--shadow-md);
+    transition: box-shadow 0.2s ease-in-out;
+  }
+
+  .card-elevated:hover {
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Financial Data Display */
+  .financial-value {
+    @apply font-mono tabular-nums font-semibold;
+  }
+
+  .financial-value-positive {
+    @apply financial-value text-success-600;
+  }
+
+  .financial-value-negative {
+    @apply financial-value text-danger-600;
+  }
+
+  /* Button variants for financial actions */
+  .btn-financial-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 font-medium;
+  }
+
+  .btn-financial-success {
+    @apply bg-success-600 text-white hover:bg-success-700 font-medium;
+  }
+
+  /* Responsive spacing utilities */
+  .section-spacing {
+    @apply py-8 md:py-12 lg:py-16;
+  }
+
+  .container-spacing {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+}
+
+@layer utilities {
+  /* Micro-interactions */
+  .smooth-transition {
+    transition: all 0.2s ease-in-out;
+  }
+
+  /* Focus visible for accessibility */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
+
+  /* Financial status indicators */
+  .status-paid {
+    @apply bg-success-50 text-success-700 border-success-200;
+  }
+
+  .status-pending {
+    @apply bg-warning-50 text-warning-700 border-warning-200;
+  }
+
+  .status-overdue {
+    @apply bg-danger-50 text-danger-700 border-danger-200;
+  }
+
+  .status-draft {
+    @apply bg-gray-50 text-gray-700 border-gray-200;
   }
 }
