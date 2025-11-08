@@ -56,3 +56,6 @@ Thumbs.db
 
 # Research output
 research/output/
+
+# clerk configuration (can include secrets)
+/.clerk/
