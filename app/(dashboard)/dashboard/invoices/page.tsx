@@ -169,12 +169,44 @@ export default function InvoicesPage() {
     }
   };
 
-  const handleDownloadInvoice = (invoice: Invoice) => {
-    console.log("Download invoice:", invoice);
-    // TODO: Generate and download PDF
-    toast.info("Feature coming soon", {
-      description: "PDF generation will be available in the next update.",
-    });
+  const handleDownloadInvoice = async (invoice: Invoice) => {
+    try {
+      // Show loading toast
+      const downloadToast = toast.loading(`Generating PDF for ${invoice.invoiceNumber}...`);
+
+      // Fetch PDF from API
+      const response = await fetch(`/api/invoices/${invoice.id}/pdf`);
+
+      if (!response.ok) {
+        throw new Error("Failed to generate PDF");
+      }
+
+      // Get the PDF blob
+      const blob = await response.blob();
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${invoice.invoiceNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      // Update toast to success
+      toast.success("PDF downloaded", {
+        id: downloadToast,
+        description: `${invoice.invoiceNumber}.pdf has been downloaded.`,
+      });
+    } catch (error) {
+      console.error("Failed to download PDF:", error);
+      toast.error("Failed to download PDF", {
+        description: "An error occurred while generating the PDF. Please try again.",
+      });
+    }
   };
 
   const handleDeleteInvoice = async (invoice: Invoice) => {

@@ -143,12 +143,12 @@ Once the app is running, you can test the complete invoice workflow:
 - **Search**: Filter by invoice number, customer name, or email
 - **Status Filter**: View invoices by status (Draft, Sent, Paid, Overdue, etc.)
 - **Actions**:
-  - **View**: Opens invoice details (modal/page coming soon)
+  - **View**: Opens invoice detail panel with all information
   - **Send**: Changes status to "sent" (for drafts)
-  - **Download**: Generates PDF (coming in Phase 2C)
+  - **Download**: Generates and downloads professional PDF invoice
   - **Delete**: Removes invoice (drafts only)
 
-**Features Implemented (Phase 2A-2B):**
+**Features Implemented (Phase 2A-2D):**
 - ✅ Complete invoice creation form with validation
 - ✅ Dynamic line items with real-time total calculations
 - ✅ Customer management (auto-creates contacts)
@@ -157,14 +157,17 @@ Once the app is running, you can test the complete invoice workflow:
 - ✅ Real-time stats dashboard (Total, Paid, Pending, Overdue)
 - ✅ Multi-tenant data isolation (company-based)
 - ✅ Full database persistence with Prisma + PostgreSQL
+- ✅ Toast notifications (Sonner) for all actions
+- ✅ Invoice detail view with sliding panel
+- ✅ Professional PDF generation and download
+- ✅ Loading states for all async operations
 
-**Coming Next (Phase 2C):**
-- 🔜 PDF generation
+**Coming Next (Phase 2E+):**
 - 🔜 Email delivery via SendGrid
-- 🔜 Invoice detail view
 - 🔜 Payment recording
 - 🔜 Customer management UI
-- 🔜 Toast notifications (replacing alerts)
+- 🔜 Expense tracking
+- 🔜 Bank integration
 
 **Troubleshooting:**
 
