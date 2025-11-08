@@ -1,6 +1,91 @@
-import { LayoutDashboard, TrendingUp, TrendingDown, DollarSign } from "lucide-react";
+"use client";
+
+import { FileText, Receipt, TrendingUp, Users, BarChart3 } from "lucide-react";
+import { trpc } from "@/lib/trpc/client";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { useMemo } from "react";
+
+const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
 export default function DashboardPage() {
+  // Fetch dashboard data
+  const { data: invoiceStats } = trpc.invoices.getStats.useQuery();
+  const { data: expenseStats } = trpc.expenses.getStats.useQuery();
+  const { data: customerStats } = trpc.customers.getStats.useQuery();
+  const { data: companyStats } = trpc.company.getStats.useQuery();
+
+  // Fetch trends for charts
+  const endDate = useMemo(() => new Date(), []);
+  const startDate = useMemo(() => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - 6);
+    return date;
+  }, []);
+
+  const { data: revenueTrends } = trpc.reports.revenueTrends.useQuery({
+    startDate,
+    endDate,
+    interval: "month",
+  });
+
+  const { data: expenseTrends } = trpc.reports.expenseTrends.useQuery({
+    startDate,
+    endDate,
+    interval: "month",
+  });
+
+  const { data: expenseCategories } = trpc.expenses.getCategories.useQuery();
+
+  // Recent invoices
+  const { data: recentInvoices } = trpc.invoices.list.useQuery({ limit: 5 });
+
+  // Recent expenses
+  const { data: recentExpenses } = trpc.expenses.list.useQuery({ limit: 5 });
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+    }).format(new Date(date));
+  };
+
+  const getTimeAgo = (date: Date) => {
+    const now = new Date();
+    const diffMs = now.getTime() - new Date(date).getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+    if (diffDays > 0) return `${diffDays}d ago`;
+    if (diffHours > 0) return `${diffHours}h ago`;
+    if (diffMinutes > 0) return `${diffMinutes}m ago`;
+    return "Just now";
+  };
+
+  // Combine revenue and expense trends
+  const combinedTrends = useMemo(() => {
+    if (!revenueTrends || !expenseTrends) return [];
+
+    return revenueTrends.trends.map((r) => {
+      const expense = expenseTrends.trends.find((e) => e.period === r.period);
+      return {
+        period: r.period,
+        revenue: r.amount,
+        expense: expense?.amount || 0,
+        profit: r.amount - (expense?.amount || 0),
+      };
+    });
+  }, [revenueTrends, expenseTrends]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -15,165 +100,198 @@ export default function DashboardPage() {
         <div className="rounded-xl border bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium text-gray-600">Total Revenue</h3>
-            <span className="flex items-center gap-1 text-xs font-medium text-success-600">
-              <TrendingUp className="h-3 w-3" />
-              +12%
-            </span>
+            <FileText className="h-5 w-5 text-blue-600" />
           </div>
           <p className="mt-2 text-3xl font-bold tabular-nums text-gray-900">
-            $48,352
+            {formatCurrency(invoiceStats?.totalAmount || 0)}
           </p>
-          <p className="mt-1 text-sm text-gray-500">vs $43,157 last month</p>
+          <p className="mt-1 text-sm text-gray-500">{invoiceStats?.total || 0} invoices</p>
         </div>
 
         {/* Total Expenses */}
         <div className="rounded-xl border bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium text-gray-600">Total Expenses</h3>
-            <span className="flex items-center gap-1 text-xs font-medium text-danger-600">
-              <TrendingDown className="h-3 w-3" />
-              -3%
-            </span>
+            <Receipt className="h-5 w-5 text-red-600" />
           </div>
           <p className="mt-2 text-3xl font-bold tabular-nums text-gray-900">
-            $28,420
+            {formatCurrency(expenseStats?.totalAmount || 0)}
           </p>
-          <p className="mt-1 text-sm text-gray-500">vs $29,310 last month</p>
+          <p className="mt-1 text-sm text-gray-500">{expenseStats?.total || 0} expenses</p>
         </div>
 
         {/* Net Profit */}
         <div className="rounded-xl border bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium text-gray-600">Net Profit</h3>
-            <span className="flex items-center gap-1 text-xs font-medium text-success-600">
-              <TrendingUp className="h-3 w-3" />
-              +28%
-            </span>
+            <TrendingUp className="h-5 w-5 text-green-600" />
           </div>
           <p className="mt-2 text-3xl font-bold tabular-nums text-gray-900">
-            $19,932
+            {formatCurrency((invoiceStats?.totalAmount || 0) - (expenseStats?.totalAmount || 0))}
           </p>
-          <p className="mt-1 text-sm text-gray-500">41% profit margin</p>
+          <p className="mt-1 text-sm text-gray-500">
+            {((invoiceStats?.totalAmount || 0) > 0
+              ? (((invoiceStats?.totalAmount || 0) - (expenseStats?.totalAmount || 0)) /
+                  (invoiceStats?.totalAmount || 1)) *
+                100
+              : 0
+            ).toFixed(0)}% profit margin
+          </p>
         </div>
 
-        {/* Outstanding Invoices */}
+        {/* Total Customers */}
         <div className="rounded-xl border bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-600">Outstanding</h3>
-            <DollarSign className="h-5 w-5 text-warning-600" />
+            <h3 className="text-sm font-medium text-gray-600">Customers</h3>
+            <Users className="h-5 w-5 text-purple-600" />
           </div>
           <p className="mt-2 text-3xl font-bold tabular-nums text-gray-900">
-            $12,450
+            {customerStats?.total || 0}
           </p>
-          <p className="mt-1 text-sm text-gray-500">5 unpaid invoices</p>
+          <p className="mt-1 text-sm text-gray-500">
+            {customerStats?.activeCustomers || 0} active
+          </p>
         </div>
       </div>
 
-      {/* Smart To-Do List */}
-      <div className="rounded-xl border bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">
-          Your To-Do List
-        </h2>
-
-        <div className="space-y-3">
-          {/* High Priority */}
-          <div className="flex items-start gap-3 rounded-lg border-l-4 border-danger-500 bg-danger-50 p-4">
-            <div className="mt-0.5 h-5 w-5 rounded-full bg-danger-500" />
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium text-gray-900">VAT return due in 3 days</h4>
-                <span className="text-xs text-gray-500">2 min</span>
-              </div>
-              <p className="mt-1 text-sm text-gray-600">
-                Auto-generate your Q4 VAT return and submit to HMRC
-              </p>
-              <button className="mt-2 text-sm font-medium text-primary-600 hover:text-primary-700">
-                Generate return →
-              </button>
+      {/* Charts Row */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Revenue vs Expenses Trend */}
+        <div className="rounded-xl border bg-white p-6 shadow-sm">
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
+            <BarChart3 className="h-5 w-5" />
+            Revenue vs Expenses (Last 6 Months)
+          </h2>
+          {combinedTrends.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={combinedTrends}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="period" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  name="Revenue"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="expense"
+                  stroke="#ef4444"
+                  strokeWidth={2}
+                  name="Expenses"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-[250px] items-center justify-center text-gray-500">
+              No data available
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* Medium Priority */}
-          <div className="flex items-start gap-3 rounded-lg border-l-4 border-warning-500 bg-warning-50 p-4">
-            <div className="mt-0.5 h-5 w-5 rounded-full bg-warning-500" />
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium text-gray-900">2 overdue invoices</h4>
-                <span className="text-xs text-gray-500">1 min</span>
-              </div>
-              <p className="mt-1 text-sm text-gray-600">
-                Send payment reminders to Acme Corp ($2,500) and TechStart ($1,200)
-              </p>
-              <button className="mt-2 text-sm font-medium text-primary-600 hover:text-primary-700">
-                Send reminders →
-              </button>
+        {/* Expenses by Category */}
+        <div className="rounded-xl border bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">
+            Expenses by Category
+          </h2>
+          {expenseCategories && expenseCategories.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={expenseCategories}
+                  dataKey="total"
+                  nameKey="category"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  label={(entry) =>
+                    entry.category
+                      ? entry.category
+                          .split("_")
+                          .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+                          .join(" ")
+                      : ""
+                  }
+                >
+                  {expenseCategories.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-[250px] items-center justify-center text-gray-500">
+              No expense categories yet
             </div>
-          </div>
-
-          {/* Low Priority */}
-          <div className="flex items-start gap-3 rounded-lg border-l-4 border-success-500 bg-success-50 p-4">
-            <div className="mt-0.5 h-5 w-5 rounded-full bg-success-500" />
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium text-gray-900">Reconcile 8 bank transactions</h4>
-                <span className="text-xs text-gray-500">5 min</span>
-              </div>
-              <p className="mt-1 text-sm text-gray-600">
-                Review AI suggestions and categorize recent transactions
-              </p>
-              <button className="mt-2 text-sm font-medium text-primary-600 hover:text-primary-700">
-                Review transactions →
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
       {/* Recent Activity */}
-      <div className="rounded-xl border bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">
-          Recent Activity
-        </h2>
-
-        <div className="space-y-3">
-          <div className="flex items-center justify-between border-b pb-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success-100">
-                <TrendingUp className="h-5 w-5 text-success-600" />
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">Payment received from Acme Corp</p>
-                <p className="text-sm text-gray-500">Invoice #INV-001 • 2 hours ago</p>
-              </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Recent Invoices */}
+        <div className="rounded-xl border bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">Recent Invoices</h2>
+          {recentInvoices && recentInvoices.invoices.length > 0 ? (
+            <div className="space-y-3">
+              {recentInvoices.invoices.map((invoice) => (
+                <div key={invoice.id} className="flex items-center justify-between border-b pb-3 last:border-0">
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {invoice.contact.name}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {invoice.invoiceNumber} • {formatDate(invoice.invoiceDate)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-gray-900">
+                      {formatCurrency(Number(invoice.total))}
+                    </p>
+                    <p className="text-xs capitalize text-gray-500">{invoice.status}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-            <span className="font-semibold tabular-nums text-success-600">+$5,250</span>
-          </div>
-
-          <div className="flex items-center justify-between border-b pb-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100">
-                <LayoutDashboard className="h-5 w-5 text-primary-600" />
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">Invoice sent to TechStart Inc</p>
-                <p className="text-sm text-gray-500">Invoice #INV-003 • 5 hours ago</p>
-              </div>
+          ) : (
+            <div className="flex h-32 items-center justify-center text-gray-500">
+              No invoices yet
             </div>
-            <span className="font-medium tabular-nums text-gray-600">$3,200</span>
-          </div>
+          )}
+        </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning-100">
-                <DollarSign className="h-5 w-5 text-warning-600" />
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">Expense recorded: AWS Services</p>
-                <p className="text-sm text-gray-500">Category: Software • Yesterday</p>
-              </div>
+        {/* Recent Expenses */}
+        <div className="rounded-xl border bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">Recent Expenses</h2>
+          {recentExpenses && recentExpenses.expenses.length > 0 ? (
+            <div className="space-y-3">
+              {recentExpenses.expenses.map((expense) => (
+                <div key={expense.id} className="flex items-center justify-between border-b pb-3 last:border-0">
+                  <div>
+                    <p className="font-medium text-gray-900">{expense.description}</p>
+                    <p className="text-sm text-gray-500">
+                      {expense.merchant || "No merchant"} • {formatDate(expense.expenseDate)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-red-600">
+                      -{formatCurrency(Number(expense.amount))}
+                    </p>
+                    <p className="text-xs capitalize text-gray-500">{expense.status}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-            <span className="font-semibold tabular-nums text-danger-600">-$89.50</span>
-          </div>
+          ) : (
+            <div className="flex h-32 items-center justify-center text-gray-500">
+              No expenses yet
+            </div>
+          )}
         </div>
       </div>
     </div>

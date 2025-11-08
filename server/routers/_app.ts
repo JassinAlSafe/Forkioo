@@ -8,6 +8,8 @@ import { invoicesRouter } from "./invoices";
 import { customersRouter } from "./customers";
 import { companyRouter } from "./company";
 import { expensesRouter } from "./expenses";
+import { accountsRouter } from "./accounts";
+import { reportsRouter } from "./reports";
 
 export const appRouter = createTRPCRouter({
   health: healthRouter,
@@ -15,6 +17,8 @@ export const appRouter = createTRPCRouter({
   customers: customersRouter,
   company: companyRouter,
   expenses: expensesRouter,
+  accounts: accountsRouter,
+  reports: reportsRouter,
   // Add more routers here as we build features:
   // transactions: transactionsRouter,
   // dashboard: dashboardRouter,
