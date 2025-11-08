@@ -5,79 +5,51 @@ import { Calendar, TrendingUp, TrendingDown, DollarSign, FileText } from "lucide
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { trpc } from "@/lib/trpc/client";
+import { useReports, useDateRanges } from "@/hooks/use-reports";
+import { useFormatters } from "@/hooks/use-formatters";
+import { ReportInterval } from "@/types/enums";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 type ReportType = "profit-loss" | "balance-sheet" | "cash-flow" | "trends";
 
 export default function ReportsPage() {
   const [reportType, setReportType] = useState<ReportType>("profit-loss");
-  const [startDate, setStartDate] = useState(() => {
-    const date = new Date();
-    date.setMonth(date.getMonth() - 1);
-    return date.toISOString().split("T")[0];
-  });
-  const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
+  const dateRanges = useDateRanges();
+  const [startDate, setStartDate] = useState(dateRanges.last30Days.startDate.toISOString().split("T")[0]);
+  const [endDate, setEndDate] = useState(dateRanges.today.toISOString().split("T")[0]);
+
+  const reportHooks = useReports();
+  const { formatCurrency, formatDate } = useFormatters();
 
   // Profit & Loss
-  const { data: profitLoss, isLoading: isPLLoading } = trpc.reports.profitAndLoss.useQuery(
-    {
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
-    },
-    { enabled: reportType === "profit-loss" }
-  );
+  const { data: profitLoss, isLoading: isPLLoading } = reportHooks.profitAndLoss({
+    startDate: new Date(startDate),
+    endDate: new Date(endDate),
+  });
 
   // Balance Sheet
-  const { data: balanceSheet, isLoading: isBSLoading } = trpc.reports.balanceSheet.useQuery(
-    { asOfDate: new Date(endDate) },
-    { enabled: reportType === "balance-sheet" }
-  );
+  const { data: balanceSheet, isLoading: isBSLoading } = reportHooks.balanceSheet(new Date(endDate));
 
   // Cash Flow
-  const { data: cashFlow, isLoading: isCFLoading } = trpc.reports.cashFlow.useQuery(
-    {
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
-    },
-    { enabled: reportType === "cash-flow" }
-  );
+  const { data: cashFlow, isLoading: isCFLoading } = reportHooks.cashFlow({
+    startDate: new Date(startDate),
+    endDate: new Date(endDate),
+  });
 
   // Trends
-  const { data: revenueTrends } = trpc.reports.revenueTrends.useQuery(
-    {
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
-      interval: "month",
-    },
-    { enabled: reportType === "trends" }
-  );
+  const { data: revenueTrends } = reportHooks.revenueTrends({
+    startDate: new Date(startDate),
+    endDate: new Date(endDate),
+    interval: ReportInterval.MONTH,
+  });
 
-  const { data: expenseTrends } = trpc.reports.expenseTrends.useQuery(
-    {
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
-      interval: "month",
-    },
-    { enabled: reportType === "trends" }
-  );
+  const { data: expenseTrends } = reportHooks.expenseTrends({
+    startDate: new Date(startDate),
+    endDate: new Date(endDate),
+    interval: ReportInterval.MONTH,
+  });
 
   const isLoading = isPLLoading || isBSLoading || isCFLoading;
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    }).format(new Date(date));
-  };
 
   return (
     <div className="space-y-6">

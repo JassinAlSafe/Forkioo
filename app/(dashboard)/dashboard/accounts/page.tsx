@@ -4,19 +4,17 @@ import { useState } from "react";
 import { Plus, Search, ChevronRight, ChevronDown, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { trpc } from "@/lib/trpc/client";
 import { AccountForm, type AccountFormData } from "@/components/accounts/account-form";
-import { toast } from "sonner";
+import { useAccounts } from "@/hooks/use-accounts";
+import { useFormatters } from "@/hooks/use-formatters";
+import { AccountType } from "@/types/enums";
+import { ACCOUNT_TYPE_OPTIONS } from "@/lib/constants/options";
 
-type AccountType = "asset" | "liability" | "equity" | "revenue" | "expense";
-
-const ACCOUNT_TYPES: { value: AccountType; label: string; color: string }[] = [
-  { value: "asset", label: "Assets", color: "text-blue-700" },
-  { value: "liability", label: "Liabilities", color: "text-red-700" },
-  { value: "equity", label: "Equity", color: "text-purple-700" },
-  { value: "revenue", label: "Revenue", color: "text-green-700" },
-  { value: "expense", label: "Expenses", color: "text-orange-700" },
-];
+const ACCOUNT_TYPES = ACCOUNT_TYPE_OPTIONS.map((opt) => ({
+  value: opt.value,
+  label: opt.label,
+  color: opt.color || "text-gray-700",
+}));
 
 export default function ChartOfAccountsPage() {
   const [search, setSearch] = useState("");
@@ -28,59 +26,14 @@ export default function ChartOfAccountsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<any>(null);
 
-  const utils = trpc.useUtils();
+  const accountHooks = useAccounts();
+  const { formatCurrency } = useFormatters();
 
   // Fetch hierarchy
-  const { data: hierarchy, isLoading } = trpc.accounts.getHierarchy.useQuery();
+  const { data: hierarchy, isLoading } = accountHooks.getHierarchy();
 
   // Fetch types summary
-  const { data: typesSummary } = trpc.accounts.getTypesSummary.useQuery();
-
-  // Create mutation
-  const createAccount = trpc.accounts.create.useMutation({
-    onSuccess: () => {
-      utils.accounts.getHierarchy.invalidate();
-      utils.accounts.getTypesSummary.invalidate();
-      utils.accounts.list.invalidate();
-      toast.success("Account created successfully");
-      setIsFormOpen(false);
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  // Update mutation
-  const updateAccount = trpc.accounts.update.useMutation({
-    onSuccess: () => {
-      utils.accounts.getHierarchy.invalidate();
-      utils.accounts.getTypesSummary.invalidate();
-      utils.accounts.list.invalidate();
-      toast.success("Account updated successfully");
-      setIsFormOpen(false);
-      setEditingAccount(null);
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  // Delete mutation
-  const deleteAccount = trpc.accounts.delete.useMutation({
-    onSuccess: (data) => {
-      utils.accounts.getHierarchy.invalidate();
-      utils.accounts.getTypesSummary.invalidate();
-      utils.accounts.list.invalidate();
-      if (data.deactivated) {
-        toast.info(data.message);
-      } else {
-        toast.success("Account deleted successfully");
-      }
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
+  const { data: typesSummary } = accountHooks.getTypesSummary();
 
   const handleCreateAccount = () => {
     setEditingAccount(null);
@@ -94,18 +47,21 @@ export default function ChartOfAccountsPage() {
 
   const handleDeleteAccount = async (id: string, name: string) => {
     if (confirm(`Are you sure you want to delete "${name}"?`)) {
-      await deleteAccount.mutateAsync({ id });
+      await accountHooks.delete.mutateAsync({ id });
     }
   };
 
   const handleSubmit = async (data: AccountFormData) => {
     if (editingAccount) {
-      await updateAccount.mutateAsync({
+      await accountHooks.update.mutateAsync({
         id: editingAccount.id,
         ...data,
       });
+      setIsFormOpen(false);
+      setEditingAccount(null);
     } else {
-      await createAccount.mutateAsync(data);
+      await accountHooks.create.mutateAsync(data);
+      setIsFormOpen(false);
     }
   };
 
@@ -185,7 +141,7 @@ export default function ChartOfAccountsPage() {
 
             <div className="flex items-center gap-4">
               <span className="font-mono text-sm font-medium text-gray-900">
-                ${Number(account.currentBalance).toFixed(2)}
+                {formatCurrency(Number(account.currentBalance))}
               </span>
 
               {!account.isSystem && (
@@ -252,7 +208,7 @@ export default function ChartOfAccountsPage() {
             <span className="text-sm text-gray-500">({summary?.count || 0} accounts)</span>
           </div>
           <div className="font-mono text-lg font-semibold text-gray-900">
-            ${Number(summary?.totalBalance || 0).toFixed(2)}
+            {formatCurrency(Number(summary?.totalBalance || 0))}
           </div>
         </button>
 
@@ -338,7 +294,7 @@ export default function ChartOfAccountsPage() {
         }}
         onSubmit={handleSubmit}
         account={editingAccount}
-        isSubmitting={createAccount.isPending || updateAccount.isPending}
+        isSubmitting={accountHooks.create.isPending || accountHooks.update.isPending}
       />
     </div>
   );

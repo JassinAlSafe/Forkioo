@@ -13,12 +13,11 @@ import {
   DollarSign,
   Save,
 } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { trpc } from "@/lib/trpc/client";
+import { useCompany } from "@/hooks/use-company";
 
 const profileSchema = z.object({
   name: z.string().min(1, "Company name is required"),
@@ -47,36 +46,11 @@ type SettingsFormData = z.infer<typeof settingsSchema>;
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<"profile" | "branding" | "invoices" | "email">("profile");
 
-  const utils = trpc.useUtils();
+  const companyHooks = useCompany();
 
   // Fetch company profile and settings
-  const { data: profile, isLoading: profileLoading } = trpc.company.getProfile.useQuery();
-  const { data: settings, isLoading: settingsLoading } = trpc.company.getSettings.useQuery();
-
-  // Mutations
-  const updateProfile = trpc.company.updateProfile.useMutation({
-    onSuccess: () => {
-      utils.company.getProfile.invalidate();
-      toast.success("Company profile updated successfully");
-    },
-    onError: (error) => {
-      toast.error("Failed to update profile", {
-        description: error.message,
-      });
-    },
-  });
-
-  const updateSettings = trpc.company.updateSettings.useMutation({
-    onSuccess: () => {
-      utils.company.getSettings.invalidate();
-      toast.success("Settings updated successfully");
-    },
-    onError: (error) => {
-      toast.error("Failed to update settings", {
-        description: error.message,
-      });
-    },
-  });
+  const { data: profile, isLoading: profileLoading } = companyHooks.getProfile();
+  const { data: settings, isLoading: settingsLoading } = companyHooks.getSettings();
 
   // Profile form
   const {
@@ -120,36 +94,28 @@ export default function SettingsPage() {
   });
 
   const onSubmitProfile = async (data: ProfileFormData) => {
-    try {
-      await updateProfile.mutateAsync({
-        name: data.name,
-        businessType: data.businessType,
-        taxId: data.taxId || undefined,
-        countryCode: data.countryCode || undefined,
-        fiscalYearEnd: data.fiscalYearEnd || undefined,
-      });
-    } catch (error) {
-      console.error("Failed to update profile:", error);
-    }
+    await companyHooks.updateProfile.mutateAsync({
+      name: data.name,
+      businessType: data.businessType,
+      taxId: data.taxId || undefined,
+      countryCode: data.countryCode || undefined,
+      fiscalYearEnd: data.fiscalYearEnd || undefined,
+    });
   };
 
   const onSubmitSettings = async (data: SettingsFormData) => {
-    try {
-      await updateSettings.mutateAsync({
-        invoicePrefix: data.invoicePrefix || undefined,
-        defaultPaymentTermsDays: data.defaultPaymentTermsDays ? Number(data.defaultPaymentTermsDays) : undefined,
-        defaultTaxRate: data.defaultTaxRate ? Number(data.defaultTaxRate) : undefined,
-        taxLabel: data.taxLabel || undefined,
-        primaryColor: data.primaryColor || undefined,
-        invoiceFooter: data.invoiceFooter || undefined,
-        invoiceTerms: data.invoiceTerms || undefined,
-        emailFromName: data.emailFromName || undefined,
-        emailReplyTo: data.emailReplyTo || undefined,
-        currency: data.currency || undefined,
-      });
-    } catch (error) {
-      console.error("Failed to update settings:", error);
-    }
+    await companyHooks.updateSettings.mutateAsync({
+      invoicePrefix: data.invoicePrefix || undefined,
+      defaultPaymentTermsDays: data.defaultPaymentTermsDays ? Number(data.defaultPaymentTermsDays) : undefined,
+      defaultTaxRate: data.defaultTaxRate ? Number(data.defaultTaxRate) : undefined,
+      taxLabel: data.taxLabel || undefined,
+      primaryColor: data.primaryColor || undefined,
+      invoiceFooter: data.invoiceFooter || undefined,
+      invoiceTerms: data.invoiceTerms || undefined,
+      emailFromName: data.emailFromName || undefined,
+      emailReplyTo: data.emailReplyTo || undefined,
+      currency: data.currency || undefined,
+    });
   };
 
   const tabs = [
@@ -269,9 +235,9 @@ export default function SettingsPage() {
               </div>
 
               <div className="mt-6 flex justify-end">
-                <Button type="submit" disabled={updateProfile.isPending}>
+                <Button type="submit" disabled={companyHooks.updateProfile.isPending}>
                   <Save className="mr-2 h-4 w-4" />
-                  {updateProfile.isPending ? "Saving..." : "Save Changes"}
+                  {companyHooks.updateProfile.isPending ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
             </div>
@@ -322,9 +288,9 @@ export default function SettingsPage() {
               </div>
 
               <div className="mt-6 flex justify-end">
-                <Button type="submit" disabled={updateSettings.isPending}>
+                <Button type="submit" disabled={companyHooks.updateSettings.isPending}>
                   <Save className="mr-2 h-4 w-4" />
-                  {updateSettings.isPending ? "Saving..." : "Save Changes"}
+                  {companyHooks.updateSettings.isPending ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
             </div>
@@ -403,9 +369,9 @@ export default function SettingsPage() {
               </div>
 
               <div className="mt-6 flex justify-end">
-                <Button type="submit" disabled={updateSettings.isPending}>
+                <Button type="submit" disabled={companyHooks.updateSettings.isPending}>
                   <Save className="mr-2 h-4 w-4" />
-                  {updateSettings.isPending ? "Saving..." : "Save Changes"}
+                  {companyHooks.updateSettings.isPending ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
             </div>
@@ -443,9 +409,9 @@ export default function SettingsPage() {
               </div>
 
               <div className="mt-6 flex justify-end">
-                <Button type="submit" disabled={updateSettings.isPending}>
+                <Button type="submit" disabled={companyHooks.updateSettings.isPending}>
                   <Save className="mr-2 h-4 w-4" />
-                  {updateSettings.isPending ? "Saving..." : "Save Changes"}
+                  {companyHooks.updateSettings.isPending ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
             </div>
