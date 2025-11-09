@@ -90,43 +90,49 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Welcome back! Here's what's happening with your business.</p>
+        <h1 className="font-display text-display-md text-gray-900">Dashboard</h1>
+        <p className="mt-2 text-gray-600">Welcome back! Here's what's happening with your business.</p>
       </div>
 
       {/* Metrics Grid */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {/* Total Revenue */}
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <div className="card-elevated rounded-xl border bg-white p-6">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium text-gray-600">Total Revenue</h3>
-            <FileText className="h-5 w-5 text-blue-600" />
+            <div className="rounded-lg bg-success-50 p-2">
+              <FileText className="h-5 w-5 text-success-600" />
+            </div>
           </div>
-          <p className="mt-2 text-3xl font-bold tabular-nums text-gray-900">
+          <p className="financial-value mt-3 text-financial-lg text-gray-900">
             {formatCurrency(invoiceStats?.totalAmount || 0)}
           </p>
           <p className="mt-1 text-sm text-gray-500">{invoiceStats?.total || 0} invoices</p>
         </div>
 
         {/* Total Expenses */}
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <div className="card-elevated rounded-xl border bg-white p-6">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium text-gray-600">Total Expenses</h3>
-            <Receipt className="h-5 w-5 text-red-600" />
+            <div className="rounded-lg bg-danger-50 p-2">
+              <Receipt className="h-5 w-5 text-danger-600" />
+            </div>
           </div>
-          <p className="mt-2 text-3xl font-bold tabular-nums text-gray-900">
+          <p className="financial-value mt-3 text-financial-lg text-gray-900">
             {formatCurrency(expenseStats?.totalAmount || 0)}
           </p>
           <p className="mt-1 text-sm text-gray-500">{expenseStats?.total || 0} expenses</p>
         </div>
 
         {/* Net Profit */}
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <div className="card-elevated rounded-xl border bg-white p-6">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium text-gray-600">Net Profit</h3>
-            <TrendingUp className="h-5 w-5 text-green-600" />
+            <div className="rounded-lg bg-primary-50 p-2">
+              <TrendingUp className="h-5 w-5 text-primary-600" />
+            </div>
           </div>
-          <p className="mt-2 text-3xl font-bold tabular-nums text-gray-900">
+          <p className="financial-value-positive mt-3 text-financial-lg">
             {formatCurrency((invoiceStats?.totalAmount || 0) - (expenseStats?.totalAmount || 0))}
           </p>
           <p className="mt-1 text-sm text-gray-500">
@@ -140,12 +146,14 @@ export default function DashboardPage() {
         </div>
 
         {/* Total Customers */}
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <div className="card-elevated rounded-xl border bg-white p-6">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium text-gray-600">Customers</h3>
-            <Users className="h-5 w-5 text-purple-600" />
+            <div className="rounded-lg bg-accent-50 p-2">
+              <Users className="h-5 w-5 text-accent-600" />
+            </div>
           </div>
-          <p className="mt-2 text-3xl font-bold tabular-nums text-gray-900">
+          <p className="financial-value mt-3 text-financial-lg text-gray-900">
             {customerStats?.total || 0}
           </p>
           <p className="mt-1 text-sm text-gray-500">
@@ -157,9 +165,9 @@ export default function DashboardPage() {
       {/* Charts Row */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Revenue vs Expenses Trend */}
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
-            <BarChart3 className="h-5 w-5" />
+        <div className="card-elevated rounded-xl border bg-white p-6">
+          <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-semibold text-gray-900">
+            <BarChart3 className="h-5 w-5 text-primary-600" />
             Revenue vs Expenses (Last 6 Months)
           </h2>
           {combinedTrends.length > 0 ? (
@@ -194,8 +202,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Expenses by Category */}
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">
+        <div className="card-elevated rounded-xl border bg-white p-6">
+          <h2 className="mb-4 font-display text-lg font-semibold text-gray-900">
             Expenses by Category
           </h2>
           {expenseCategories && expenseCategories.length > 0 ? (
@@ -235,12 +243,12 @@ export default function DashboardPage() {
       {/* Recent Activity */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Recent Invoices */}
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Recent Invoices</h2>
+        <div className="card-elevated rounded-xl border bg-white p-6">
+          <h2 className="mb-4 font-display text-lg font-semibold text-gray-900">Recent Invoices</h2>
           {recentInvoices && recentInvoices.invoices.length > 0 ? (
             <div className="space-y-3">
               {recentInvoices.invoices.map((invoice) => (
-                <div key={invoice.id} className="flex items-center justify-between border-b pb-3 last:border-0">
+                <div key={invoice.id} className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0">
                   <div>
                     <p className="font-medium text-gray-900">
                       {invoice.contact.name}
@@ -250,7 +258,7 @@ export default function DashboardPage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-gray-900">
+                    <p className="financial-value text-gray-900">
                       {formatCurrency(Number(invoice.total))}
                     </p>
                     <p className="text-xs capitalize text-gray-500">{invoice.status}</p>
@@ -266,12 +274,12 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Expenses */}
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Recent Expenses</h2>
+        <div className="card-elevated rounded-xl border bg-white p-6">
+          <h2 className="mb-4 font-display text-lg font-semibold text-gray-900">Recent Expenses</h2>
           {recentExpenses && recentExpenses.expenses.length > 0 ? (
             <div className="space-y-3">
               {recentExpenses.expenses.map((expense) => (
-                <div key={expense.id} className="flex items-center justify-between border-b pb-3 last:border-0">
+                <div key={expense.id} className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0">
                   <div>
                     <p className="font-medium text-gray-900">{expense.description}</p>
                     <p className="text-sm text-gray-500">
@@ -279,7 +287,7 @@ export default function DashboardPage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-red-600">
+                    <p className="financial-value-negative">
                       -{formatCurrency(Number(expense.amount))}
                     </p>
                     <p className="text-xs capitalize text-gray-500">{expense.status}</p>
