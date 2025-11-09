@@ -57,6 +57,9 @@ export function SkeletonTable() {
 }
 
 export function SkeletonChart() {
+  // Predetermined heights for consistent SSR/CSR rendering
+  const barHeights = [120, 85, 140, 95, 160, 110];
+
   return (
     <div className="card-elevated rounded-xl border bg-white p-6">
       <div className="mb-4 flex items-center gap-2">
@@ -64,11 +67,11 @@ export function SkeletonChart() {
         <Skeleton className="h-5 w-48" />
       </div>
       <div className="flex h-[250px] items-end justify-around gap-2">
-        {[...Array(6)].map((_, i) => (
+        {barHeights.map((height, i) => (
           <Skeleton
             key={i}
             className="w-full"
-            style={{ height: `${Math.random() * 100 + 50}px` }}
+            style={{ height: `${height}px` }}
           />
         ))}
       </div>
