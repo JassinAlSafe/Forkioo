@@ -13,6 +13,8 @@ import { type InvoiceFormData, generateInvoiceNumber } from "@/lib/validations/i
 import { type InvoiceStatus } from "@/components/invoices/invoice-status-badge";
 import { useInvoices } from "@/hooks/use-invoices";
 import { useFormatters } from "@/hooks/use-formatters";
+import { SkeletonStats, SkeletonTable } from "@/components/ui/skeleton";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function InvoicesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -144,9 +146,9 @@ export default function InvoicesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="page-transition space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="fade-in flex items-center justify-between">
         <div>
           <h1 className="font-display text-display-md text-gray-900">Invoices</h1>
           <p className="mt-2 text-gray-600">
@@ -197,9 +199,7 @@ export default function InvoicesPage() {
 
       {/* Invoice List */}
       {invoicesLoading ? (
-        <div className="rounded-xl border bg-white p-12 text-center">
-          <p className="text-gray-600">Loading invoices...</p>
-        </div>
+        <SkeletonTable />
       ) : invoices.length === 0 ? (
         <div className="rounded-xl border bg-white p-12 text-center">
           <p className="text-gray-600">

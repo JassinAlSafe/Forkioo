@@ -4,15 +4,16 @@ import { FileText, Receipt, TrendingUp, Users, BarChart3 } from "lucide-react";
 import { trpc } from "@/lib/trpc/client";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { useMemo } from "react";
+import { SkeletonStats, SkeletonChart, SkeletonList } from "@/components/ui/skeleton";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
 export default function DashboardPage() {
   // Fetch dashboard data
-  const { data: invoiceStats } = trpc.invoices.getStats.useQuery();
-  const { data: expenseStats } = trpc.expenses.getStats.useQuery();
-  const { data: customerStats } = trpc.customers.getStats.useQuery();
-  const { data: companyStats } = trpc.company.getStats.useQuery();
+  const { data: invoiceStats, isLoading: invoiceStatsLoading } = trpc.invoices.getStats.useQuery();
+  const { data: expenseStats, isLoading: expenseStatsLoading } = trpc.expenses.getStats.useQuery();
+  const { data: customerStats, isLoading: customerStatsLoading } = trpc.customers.getStats.useQuery();
+  const { data: companyStats, isLoading: companyStatsLoading } = trpc.company.getStats.useQuery();
 
   // Fetch trends for charts
   const endDate = useMemo(() => new Date(), []);
@@ -22,25 +23,28 @@ export default function DashboardPage() {
     return date;
   }, []);
 
-  const { data: revenueTrends } = trpc.reports.revenueTrends.useQuery({
+  const { data: revenueTrends, isLoading: revenueTrendsLoading } = trpc.reports.revenueTrends.useQuery({
     startDate,
     endDate,
     interval: "month",
   });
 
-  const { data: expenseTrends } = trpc.reports.expenseTrends.useQuery({
+  const { data: expenseTrends, isLoading: expenseTrendsLoading } = trpc.reports.expenseTrends.useQuery({
     startDate,
     endDate,
     interval: "month",
   });
 
-  const { data: expenseCategories } = trpc.expenses.getCategories.useQuery();
+  const { data: expenseCategories, isLoading: expenseCategoriesLoading } = trpc.expenses.getCategories.useQuery();
 
   // Recent invoices
-  const { data: recentInvoices } = trpc.invoices.list.useQuery({ limit: 5 });
+  const { data: recentInvoices, isLoading: recentInvoicesLoading } = trpc.invoices.list.useQuery({ limit: 5 });
 
   // Recent expenses
-  const { data: recentExpenses } = trpc.expenses.list.useQuery({ limit: 5 });
+  const { data: recentExpenses, isLoading: recentExpensesLoading } = trpc.expenses.list.useQuery({ limit: 5 });
+
+  // Determine if initial loading
+  const isInitialLoading = invoiceStatsLoading && expenseStatsLoading && customerStatsLoading;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -86,10 +90,31 @@ export default function DashboardPage() {
     });
   }, [revenueTrends, expenseTrends]);
 
+  // Show skeleton loaders on initial load
+  if (isInitialLoading) {
+    return (
+      <div className="page-transition space-y-6">
+        <div>
+          <div className="h-10 w-48 animate-pulse rounded-md bg-gray-200" />
+          <div className="mt-2 h-5 w-96 animate-pulse rounded-md bg-gray-200" />
+        </div>
+        <SkeletonStats />
+        <div className="grid gap-6 lg:grid-cols-2">
+          <SkeletonChart />
+          <SkeletonChart />
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <SkeletonList />
+          <SkeletonList />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="page-transition space-y-6">
       {/* Header */}
-      <div>
+      <div className="fade-in">
         <h1 className="font-display text-display-md text-gray-900">Dashboard</h1>
         <p className="mt-2 text-gray-600">Welcome back! Here's what's happening with your business.</p>
       </div>
@@ -245,10 +270,12 @@ export default function DashboardPage() {
         {/* Recent Invoices */}
         <div className="card-elevated rounded-xl border bg-white p-6">
           <h2 className="mb-4 font-display text-lg font-semibold text-gray-900">Recent Invoices</h2>
-          {recentInvoices && recentInvoices.invoices.length > 0 ? (
+          {recentInvoicesLoading ? (
+            <SkeletonList />
+          ) : recentInvoices && recentInvoices.invoices.length > 0 ? (
             <div className="space-y-3">
-              {recentInvoices.invoices.map((invoice) => (
-                <div key={invoice.id} className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0">
+              {recentInvoices.invoices.map((invoice, index) => (
+                <div key={invoice.id} className="stagger-item flex items-center justify-between border-b border-gray-100 pb-3 last:border-0">
                   <div>
                     <p className="font-medium text-gray-900">
                       {invoice.contact.name}
@@ -276,10 +303,12 @@ export default function DashboardPage() {
         {/* Recent Expenses */}
         <div className="card-elevated rounded-xl border bg-white p-6">
           <h2 className="mb-4 font-display text-lg font-semibold text-gray-900">Recent Expenses</h2>
-          {recentExpenses && recentExpenses.expenses.length > 0 ? (
+          {recentExpensesLoading ? (
+            <SkeletonList />
+          ) : recentExpenses && recentExpenses.expenses.length > 0 ? (
             <div className="space-y-3">
-              {recentExpenses.expenses.map((expense) => (
-                <div key={expense.id} className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0">
+              {recentExpenses.expenses.map((expense, index) => (
+                <div key={expense.id} className="stagger-item flex items-center justify-between border-b border-gray-100 pb-3 last:border-0">
                   <div>
                     <p className="font-medium text-gray-900">{expense.description}</p>
                     <p className="text-sm text-gray-500">

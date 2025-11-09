@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CustomerForm, type CustomerFormData } from "@/components/customers/customer-form";
 import { useCustomers } from "@/hooks/use-customers";
+import { SkeletonTable } from "@/components/ui/skeleton";
 
 export default function CustomersPage() {
   const [search, setSearch] = useState("");
@@ -57,9 +58,9 @@ export default function CustomersPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="page-transition space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="fade-in flex items-center justify-between">
         <div>
           <h1 className="font-display text-display-md text-gray-900">Customers</h1>
           <p className="mt-2 text-gray-600">
@@ -112,9 +113,7 @@ export default function CustomersPage() {
 
       {/* Customer List */}
       {customersLoading ? (
-        <div className="rounded-xl border bg-white p-12 text-center">
-          <p className="text-gray-600">Loading customers...</p>
-        </div>
+        <SkeletonTable />
       ) : customers.length === 0 ? (
         <div className="rounded-xl border bg-white p-12 text-center">
           <p className="text-gray-600">
@@ -147,10 +146,10 @@ export default function CustomersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {customers.map((customer) => (
+                {customers.map((customer, index) => (
                   <tr
                     key={customer.id}
-                    className="transition-colors hover:bg-gray-50"
+                    className="stagger-item transition-colors hover:bg-gray-50"
                   >
                     <td className="whitespace-nowrap px-6 py-4">
                       <div className="font-medium text-gray-900">

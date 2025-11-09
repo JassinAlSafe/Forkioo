@@ -9,6 +9,7 @@ import { useAccounts } from "@/hooks/use-accounts";
 import { useFormatters } from "@/hooks/use-formatters";
 import { AccountType } from "@/types/enums";
 import { ACCOUNT_TYPE_OPTIONS } from "@/lib/constants/options";
+import { SkeletonList, Skeleton } from "@/components/ui/skeleton";
 
 const ACCOUNT_TYPES = ACCOUNT_TYPE_OPTIONS.map((opt) => ({
   value: opt.value,
@@ -229,16 +230,33 @@ export default function ChartOfAccountsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-96 items-center justify-center">
-        <div className="text-gray-500">Loading chart of accounts...</div>
+      <div className="page-transition space-y-6">
+        <div>
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="mt-2 h-5 w-96" />
+        </div>
+        <div className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="rounded-lg border border-gray-200 bg-white p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-5 w-5" />
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+                <Skeleton className="h-6 w-24" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-transition space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="fade-in flex items-center justify-between">
         <div>
           <h1 className="font-display text-display-md text-gray-900">Chart of Accounts</h1>
           <p className="mt-2 text-gray-600">

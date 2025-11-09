@@ -7,6 +7,7 @@ import { ExpenseForm, type ExpenseFormData } from "@/components/expenses/expense
 import { ExpenseStatusBadge, type ExpenseStatus } from "@/components/expenses/expense-status-badge";
 import { useExpenses } from "@/hooks/use-expenses";
 import { useFormatters } from "@/hooks/use-formatters";
+import { SkeletonTable } from "@/components/ui/skeleton";
 
 export default function ExpensesPage() {
   const [search, setSearch] = useState("");
@@ -87,9 +88,9 @@ export default function ExpensesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="page-transition space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="fade-in flex items-center justify-between">
         <div>
           <h1 className="font-display text-display-md text-gray-900">Expenses</h1>
           <p className="mt-2 text-gray-600">Track and manage business expenses</p>
@@ -180,9 +181,7 @@ export default function ExpensesPage() {
 
       {/* Expense List */}
       {expensesLoading ? (
-        <div className="rounded-xl border bg-white p-12 text-center">
-          <p className="text-gray-600">Loading expenses...</p>
-        </div>
+        <SkeletonTable />
       ) : expenses.length === 0 ? (
         <div className="rounded-xl border bg-white p-12 text-center">
           <p className="text-gray-600">
@@ -218,10 +217,10 @@ export default function ExpensesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {expenses.map((expense) => (
+                {expenses.map((expense, index) => (
                   <tr
                     key={expense.id}
-                    className="transition-colors hover:bg-gray-50"
+                    className="stagger-item transition-colors hover:bg-gray-50"
                   >
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
                       {formatDate(expense.expenseDate)}

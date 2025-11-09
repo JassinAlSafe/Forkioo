@@ -9,6 +9,7 @@ import { useReports, useDateRanges } from "@/hooks/use-reports";
 import { useFormatters } from "@/hooks/use-formatters";
 import { ReportInterval } from "@/types/enums";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type ReportType = "profit-loss" | "balance-sheet" | "cash-flow" | "trends";
 
@@ -52,9 +53,9 @@ export default function ReportsPage() {
   const isLoading = isPLLoading || isBSLoading || isCFLoading;
 
   return (
-    <div className="space-y-6">
+    <div className="page-transition space-y-6">
       {/* Header */}
-      <div>
+      <div className="fade-in">
         <h1 className="font-display text-display-md text-gray-900">Financial Reports</h1>
         <p className="mt-2 text-gray-600">
           View comprehensive financial statements and analysis
