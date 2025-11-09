@@ -140,7 +140,7 @@ export default function ChartOfAccountsPage() {
             </div>
 
             <div className="flex items-center gap-4">
-              <span className="font-mono text-sm font-medium text-gray-900">
+              <span className="financial-value text-sm text-gray-900">
                 {formatCurrency(Number(account.currentBalance))}
               </span>
 
@@ -202,12 +202,12 @@ export default function ChartOfAccountsPage() {
             ) : (
               <ChevronRight className="h-5 w-5 text-gray-400" />
             )}
-            <h3 className={`text-lg font-semibold ${typeConfig.color}`}>
+            <h3 className={`font-display text-lg font-semibold ${typeConfig.color}`}>
               {typeConfig.label}
             </h3>
             <span className="text-sm text-gray-500">({summary?.count || 0} accounts)</span>
           </div>
-          <div className="font-mono text-lg font-semibold text-gray-900">
+          <div className="financial-value text-financial-md text-gray-900">
             {formatCurrency(Number(summary?.totalBalance || 0))}
           </div>
         </button>
@@ -240,8 +240,8 @@ export default function ChartOfAccountsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Chart of Accounts</h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <h1 className="font-display text-display-md text-gray-900">Chart of Accounts</h1>
+          <p className="mt-2 text-gray-600">
             Manage your company's account structure
           </p>
         </div>

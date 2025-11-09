@@ -55,8 +55,8 @@ export default function ReportsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Financial Reports</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="font-display text-display-md text-gray-900">Financial Reports</h1>
+        <p className="mt-2 text-gray-600">
           View comprehensive financial statements and analysis
         </p>
       </div>

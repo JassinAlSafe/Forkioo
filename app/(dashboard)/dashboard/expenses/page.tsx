@@ -91,8 +91,8 @@ export default function ExpensesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
-          <p className="text-gray-600">Track and manage business expenses</p>
+          <h1 className="font-display text-display-md text-gray-900">Expenses</h1>
+          <p className="mt-2 text-gray-600">Track and manage business expenses</p>
         </div>
         <Button
           onClick={() => {
@@ -107,27 +107,27 @@ export default function ExpensesPage() {
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-4">
-        <div className="rounded-lg border bg-white p-4">
-          <div className="text-sm text-gray-600">Total Expenses</div>
-          <div className="mt-1 text-2xl font-bold tabular-nums">
+        <div className="card-elevated rounded-xl border bg-white p-4">
+          <div className="text-sm font-medium text-gray-600">Total Expenses</div>
+          <div className="financial-value mt-2 text-financial-lg text-gray-900">
             {stats?.total ?? 0}
           </div>
         </div>
-        <div className="rounded-lg border bg-white p-4">
-          <div className="text-sm text-gray-600">Pending Approval</div>
-          <div className="mt-1 text-2xl font-bold tabular-nums text-blue-600">
+        <div className="card-elevated rounded-xl border bg-white p-4">
+          <div className="text-sm font-medium text-gray-600">Pending Approval</div>
+          <div className="financial-value mt-2 text-financial-lg text-primary-600">
             {stats?.pending ?? 0}
           </div>
         </div>
-        <div className="rounded-lg border bg-white p-4">
-          <div className="text-sm text-gray-600">Approved</div>
-          <div className="mt-1 text-2xl font-bold tabular-nums text-success-600">
+        <div className="card-elevated rounded-xl border bg-white p-4">
+          <div className="text-sm font-medium text-gray-600">Approved</div>
+          <div className="financial-value mt-2 text-financial-lg text-success-600">
             {stats?.approved ?? 0}
           </div>
         </div>
-        <div className="rounded-lg border bg-white p-4">
-          <div className="text-sm text-gray-600">This Month</div>
-          <div className="mt-1 text-2xl font-bold tabular-nums">
+        <div className="card-elevated rounded-xl border bg-white p-4">
+          <div className="text-sm font-medium text-gray-600">This Month</div>
+          <div className="financial-value-negative mt-2 text-financial-lg">
             {formatCurrency(stats?.thisMonthAmount ?? 0)}
           </div>
         </div>

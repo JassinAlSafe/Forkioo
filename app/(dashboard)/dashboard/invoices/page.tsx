@@ -148,8 +148,8 @@ export default function InvoicesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
-          <p className="text-gray-600">
+          <h1 className="font-display text-display-md text-gray-900">Invoices</h1>
+          <p className="mt-2 text-gray-600">
             Manage your invoices and track payments
           </p>
         </div>
@@ -169,27 +169,27 @@ export default function InvoicesPage() {
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-4">
-        <div className="rounded-lg border bg-white p-4">
-          <div className="text-sm text-gray-600">Total Invoices</div>
-          <div className="mt-1 text-2xl font-bold tabular-nums">
+        <div className="card-elevated rounded-xl border bg-white p-4">
+          <div className="text-sm font-medium text-gray-600">Total Invoices</div>
+          <div className="financial-value mt-2 text-financial-lg text-gray-900">
             {stats?.total ?? 0}
           </div>
         </div>
-        <div className="rounded-lg border bg-white p-4">
-          <div className="text-sm text-gray-600">Paid</div>
-          <div className="mt-1 text-2xl font-bold tabular-nums text-success-600">
+        <div className="card-elevated rounded-xl border bg-white p-4">
+          <div className="text-sm font-medium text-gray-600">Paid</div>
+          <div className="financial-value mt-2 text-financial-lg text-success-600">
             {stats?.paid ?? 0}
           </div>
         </div>
-        <div className="rounded-lg border bg-white p-4">
-          <div className="text-sm text-gray-600">Pending</div>
-          <div className="mt-1 text-2xl font-bold tabular-nums text-warning-600">
+        <div className="card-elevated rounded-xl border bg-white p-4">
+          <div className="text-sm font-medium text-gray-600">Pending</div>
+          <div className="financial-value mt-2 text-financial-lg text-warning-600">
             {stats?.pending ?? 0}
           </div>
         </div>
-        <div className="rounded-lg border bg-white p-4">
-          <div className="text-sm text-gray-600">Overdue</div>
-          <div className="mt-1 text-2xl font-bold tabular-nums text-danger-600">
+        <div className="card-elevated rounded-xl border bg-white p-4">
+          <div className="text-sm font-medium text-gray-600">Overdue</div>
+          <div className="financial-value mt-2 text-financial-lg text-danger-600">
             {stats?.overdue ?? 0}
           </div>
         </div>

@@ -61,8 +61,8 @@ export default function CustomersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Customers</h1>
-          <p className="text-gray-600">
+          <h1 className="font-display text-display-md text-gray-900">Customers</h1>
+          <p className="mt-2 text-gray-600">
             Manage your customer relationships
           </p>
         </div>
@@ -90,21 +90,21 @@ export default function CustomersPage() {
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border bg-white p-4">
-          <div className="text-sm text-gray-600">Total Customers</div>
-          <div className="mt-1 text-2xl font-bold tabular-nums">
+        <div className="card-elevated rounded-xl border bg-white p-4">
+          <div className="text-sm font-medium text-gray-600">Total Customers</div>
+          <div className="financial-value mt-2 text-financial-lg text-gray-900">
             {stats?.total ?? 0}
           </div>
         </div>
-        <div className="rounded-lg border bg-white p-4">
-          <div className="text-sm text-gray-600">With Invoices</div>
-          <div className="mt-1 text-2xl font-bold tabular-nums text-success-600">
+        <div className="card-elevated rounded-xl border bg-white p-4">
+          <div className="text-sm font-medium text-gray-600">With Invoices</div>
+          <div className="financial-value mt-2 text-financial-lg text-success-600">
             {stats?.withInvoices ?? 0}
           </div>
         </div>
-        <div className="rounded-lg border bg-white p-4">
-          <div className="text-sm text-gray-600">Without Invoices</div>
-          <div className="mt-1 text-2xl font-bold tabular-nums text-gray-600">
+        <div className="card-elevated rounded-xl border bg-white p-4">
+          <div className="text-sm font-medium text-gray-600">Without Invoices</div>
+          <div className="financial-value mt-2 text-financial-lg text-gray-600">
             {stats?.withoutInvoices ?? 0}
           </div>
         </div>
